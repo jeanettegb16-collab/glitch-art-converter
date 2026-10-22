@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GLITCH ART CONVERTER v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="topbar">
+  <button class="mode-btn" id="btnSide" style="border-left:none;opacity:.8">◧</button>
+  <span class="topbar-title">GLITCH ART CONVERTER v1.0</span>
+  <button class="mode-btn active" id="btnModeGlyph" title="Selected image layer → ASCII glyphs (Shift = all image layers)">ASCII</button>
+  <button class="mode-btn" id="btnModePixel" title="Selected image layer → pixel art (Shift = all image layers)">PIXEL ART</button>
+  <button class="mode-btn" id="btnModeImage" title="Selected image layer → plain picture (Shift = all image layers)">IMAGE</button>
+  <button class="mode-btn" id="btnSaveProj">SAVE</button>
+  <button class="mode-btn" id="btnOpenProj">OPEN</button>
+  <input type="file" id="projIn" accept=".json,.gz" style="display:none">
+  <button class="mode-btn" id="btnPng">PNG</button>
+  <button class="mode-btn" id="btnAnim">EXPORT</button>
+  <button class="mode-btn active" id="btnGlitchQ">◉ GLITCH</button>
+  <button class="mode-btn" id="btnZoomDn" title="Smaller interface">A−</button>
+  <button class="mode-btn" id="btnZoomUp" title="Bigger interface">A+</button>
+  <button class="mode-btn" id="btnSettings">⚙ UI</button>
+</div>
+<div class="pop" id="settingsPop">
+  <span class="slabel">:: Interface</span>
+  <div class="ctrl"><div class="ch">UI GLOW <span id="uiGlowVal">130%</span></div><input type="range" id="uiGlow" min="0" max="250" value="130"></div>
+  <div id="uiColorPanel"></div>
+</div>
+<div class="main">
+  <div class="left" id="leftPanel">
+
+    <details class="sec" data-k="layers" open><summary>LAYERS</summary>
+      <div class="ps">
+        <div class="ctrl"><div class="ch">CANVAS ASPECT <span style="opacity:.5">· fits the window, never stretched</span></div>
+          <select id="canvasAspect"><option value="auto">AUTO (first image)</option><option value="16:9">16:9</option><option value="4:3">4:3</option><option value="3:2">3:2</option><option value="1:1">1:1 square</option><option value="3:4">3:4 portrait</option><option value="9:16">9:16 portrait</option><option value="21:9">21:9 wide</option></select></div>
+        <div class="layer-list" id="layerList"></div>
+        <div class="seg"><button class="abtn" id="btnAddImg">+ IMAGE</button><button class="abtn" id="btnAddTxt">+ TEXT</button></div>
+        <div class="seg3">
+          <button class="abtn" id="btnLayerUp">↑</button>
+          <button class="abtn" id="btnLayerDn">↓</button>
+          <button class="abtn" id="btnLayerDel">DEL</button>
+        </div>
+        <div class="tr"><span class="tl">IN ROLL SWAP</span><div class="tog" id="tInRoll" data-on="0"></div></div>
+        <input type="file" id="fileImg" accept="image/*" style="display:none">
+      </div>
+      <div class="ps" id="layerProps"></div>
+    </details>
+
+    <details class="sec" data-k="roll"><summary>IMAGE SEQUENCE (ROLL SWAP)</summary>
+      <div class="ps">
+        <div class="hint">Mark image layers <b>IN ROLL SWAP</b> (LAYERS ▸ below the list). The next image takes over on the timer, or when you hit SWITCH NOW.</div>
+        <div class="tr"><span class="tl">ROLL SWAP TO NEXT IMAGE</span><div class="tog on" id="tRollOn" data-on="1"></div></div>
+        <div class="ctrl"><div class="ch">SWITCH STYLE</div>
+          <select id="rollStyle">
+            <optgroup label="PERMANENT SWITCH (cycles images)">
+              <option value="vroll">V-HOLD ROLL (vertical slide)</option>
+              <option value="hslide">HORIZONTAL SLIDE</option>
+              <option value="sync">SYNC BAR SWEEP</option>
+              <option value="blocks">BLOCK REVEAL</option>
+              <option value="crossfade">CROSSFADE</option>
+              <option value="flash">FLASH CUT</option>
+              <option value="burst" selected>BURST FLASH (next appears in glitch)</option>
+              <option value="hardcut">HARD CUT</option>
+            </optgroup>
+            <optgroup label="GLITCH INTRUSION (image 1 stays main)">
+              <option value="intrude">INTRUDE (image 2 slabs)</option>
+              <option value="ghost">GHOST ECHO (image 2 afterimage)</option>
+              <option value="subliminal">SUBLIMINAL (1-frame flash)</option>
+              <option value="peek">PEEK (image 2 for a moment)</option>
+              <option value="hold">HOLD (image 2 for a beat)</option>
+            </optgroup>
+          </select></div>
+        <div class="ctrl"><div class="ch">SWAP EVERY <span id="rollEveryVal">5</span>s</div><input type="range" id="rollEvery" min="2" max="20" value="5"></div>
+        <div class="ctrl"><div class="ch">TRANSITION LENGTH <span id="rollDurVal">AUTO</span></div><input type="range" id="rollDur" min="0" max="3000" step="50" value="0"></div>
+        <div class="seg" style="margin-top:4px"><button class="abtn" id="btnRollNow">▶ SWITCH NOW</button><button class="abtn" id="btnRollReset">↻ RESET CYCLE</button></div>
+      </div>
+    </details>
+
+    <details class="sec" data-k="glitch"><summary>GLITCH (per layer)</summary>
+      <div class="ps">
+        <div class="hint">These controls edit the <b>selected layer</b>: <b id="glLayerName">—</b>. Each layer keeps its own glitch.</div>
+        <div class="tr"><span class="tl">GLITCH ON THIS LAYER</span><div class="tog on" id="tLayerGl" data-on="1"></div></div>
+        <button class="abtn" id="btnGlCopyAll">COPY THESE TO ALL LAYERS</button>
+        <div class="seg"><button class="abtn pri" id="ordAfter">OUTPUT</button><button class="abtn" id="ordBefore">SOURCE</button></div>
+        <div class="hint">SOURCE = glitch happens before pixel-stack effects. OUTPUT = glitch happens after pixel-stack effects.</div>
+        <div class="tr"><span class="tl">MASTER GLITCH (all layers)</span><div class="tog on" id="tGlitch" data-on="1"></div></div>
+        <div class="ctrl"><div class="ch">INTENSITY <span id="gAmtVal">50</span></div><input type="range" id="gAmt" min="0" max="100" value="50"></div>
+        <div class="ctrl"><div class="ch">SPEED <span id="gSpdVal">50</span></div><input type="range" id="gSpd" min="1" max="100" value="50"></div>
+        <div class="ctrl"><div class="ch">BURST FREQ <span id="gFreqVal">40</span></div><input type="range" id="gFreq" min="0" max="100" value="40"></div>
+        <div class="tr"><span class="tl">RGB SPLIT</span><div class="tog on" data-fx="rgb" data-on="1"></div></div>
+        <div class="tr"><span class="tl">SLICE TEAR</span><div class="tog on" data-fx="slice" data-on="1"></div></div>
+        <div class="tr"><span class="tl">ROW SHIFT</span><div class="tog on" data-fx="rowshift" data-on="1"></div></div>
+        <div class="tr"><span class="tl">BLOCK CORRUPT</span><div class="tog on" data-fx="block" data-on="1"></div></div>
+        <div class="tr"><span class="tl">V-HOLD ROLL</span><div class="tog" data-fx="roll" data-on="0"></div></div>
+        <div class="tr"><span class="tl">STATIC NOISE</span><div class="tog on" data-fx="noise" data-on="1"></div></div>
+        <div class="tr"><span class="tl">FLICKER</span><div class="tog on" data-fx="flick" data-on="1"></div></div>
+        <div class="tr"><span class="tl">WOBBLE</span><div class="tog on" data-fx="wobble" data-on="1"></div></div>
+        <div class="tr"><span class="tl">MATRIX RAIN</span><div class="tog" data-fx="rain" data-on="0"></div></div>
+        <div class="tr"><span class="tl">STREAK NOISE</span><div class="tog" data-fx="streak" data-on="0"></div></div>
+        <div class="tr"><span class="tl">SCAN BARS</span><div class="tog" data-fx="bars" data-on="0"></div></div>
+        <div class="tr"><span class="tl">ROW SMEAR</span><div class="tog" data-fx="smear" data-on="0"></div></div>
+        <div class="ctrl"><div class="ch">STREAK COLORS</div><select id="gStreakCol"><option value="analog">ANALOG (red / blue / cyan)</option><option value="phos">PHOSPHOR (output color)</option></select></div>
+        <button class="abtn" id="btnBreakup" style="width:100%;margin-top:4px">▶ PRESET: SIGNAL BREAKUP</button>
+      </div>
+      <div class="ps">
+        <span class="slabel">:: Advanced pixel stack</span>
+        <div class="tr"><span class="tl">FREEZE (STATIC)</span><div class="tog" id="tPgStatic" data-on="0"></div></div>
+        <div class="ctrl"><div class="ch">AMOUNT <span id="pgAmtVal">5</span></div><input type="range" id="pgAmt" min="1" max="10" value="5"></div>
+        <div class="ctrl"><div class="ch">SEED <span id="pgSeedVal">42</span></div><input type="range" id="pgSeed" min="0" max="999" value="42"></div>
+        <div class="tr"><span class="tl">CRT WARP</span><div class="tog" data-pg="warp" data-on="0"></div></div>
+        <div class="tr"><span class="tl">CHROMA SPLIT</span><div class="tog" data-pg="chroma" data-on="0"></div></div>
+        <div class="tr"><span class="tl">PIXEL SORT</span><div class="tog" data-pg="sort" data-on="0"></div></div>
+        <div class="tr"><span class="tl">ROW JITTER</span><div class="tog" data-pg="jitter" data-on="0"></div></div>
+        <div class="tr"><span class="tl">DATAMOSH</span><div class="tog" data-pg="mosh" data-on="0"></div></div>
+        <div class="tr"><span class="tl">PIXEL STRETCH</span><div class="tog" data-pg="stretch" data-on="0"></div></div>
+        <div class="tr"><span class="tl">GHOST ECHO</span><div class="tog" data-pg="ghost" data-on="0"></div></div>
+        <div class="tr"><span class="tl">VHS TRACKING</span><div class="tog" data-pg="vhs" data-on="0"></div></div>
+        <div class="tr"><span class="tl">TAPE DROPOUT</span><div class="tog" data-pg="dropout" data-on="0"></div></div>
+        <div class="tr"><span class="tl">CONTRAST CRUSH</span><div class="tog" data-pg="crush" data-on="0"></div></div>
+      </div>
+    </details>
+
+    <details class="sec" data-k="export"><summary>EXPORT</summary>
+      <div class="ps">
+        <div class="ctrl"><div class="ch">FORMAT</div>
+          <select id="animFmt">
+            <option value="webm">WEBM — WebCodecs (fast, small)</option>
+            <option value="gif">GIF</option>
+            <option value="apng">APNG</option>
+            <option value="zip">PNG SEQUENCE (.zip)</option>
+          </select></div>
+        <div class="ctrl" id="rowFrames"><div class="ch">FRAMES <span id="gifFramesVal">40</span></div><input type="range" id="gifFrames" min="10" max="120" value="40"></div>
+        <div class="ctrl" id="rowSecs" style="display:none"><div class="ch">LENGTH <span id="vidSecsVal">6</span>s</div><input type="range" id="vidSecs" min="2" max="60" value="6"></div>
+        <div class="ctrl" id="rowBps" style="display:none"><div class="ch">BITRATE <span id="vidBpsVal">4.0</span>Mbps</div><input type="range" id="vidBps" min="1" max="20" step="0.5" value="4"></div>
+        <div class="ctrl"><div class="ch">WIDTH <span id="gifWVal">640</span>px</div><input type="range" id="gifW" min="240" max="1200" step="20" value="640"></div>
+        <div class="ctrl"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="syncPrev" checked> PREVIEW = EXPORT</label></div>
+        <div class="hint">ON: the preview renders at export size and loops over the export length with the same seeded glitch, so what you watch is what the file contains.</div>
+        <div id="rowGifOpts" style="display:none">
+          <div class="ctrl"><div class="ch">COLORS</div>
+            <select id="gifColors">
+              <option value="256">256</option><option value="128">128</option><option value="64">64</option>
+              <option value="32">32</option><option value="16">16</option><option value="8">8</option>
+            </select></div>
+          <div class="ctrl"><div class="ch">LOSSY <span id="gifLossyVal">OFF</span></div><input type="range" id="gifLossy" min="0" max="40" value="0"></div>
+        </div>
+        <div class="ctrl"><div class="ch">TRIGGER SWAP AT <span id="exSwapAtVal">40</span>%</div><input type="range" id="exSwapAt" min="5" max="95" value="40"></div>
+        <div id="exSummary" style="font-size:12px;opacity:.7;margin:6px 0"></div>
+        <div class="hint">Export always captures the COMBINED view, regardless of the current preview mode.</div>
+        <button class="abtn pri big" id="btnExport">EXPORT</button>
+      </div>
+      <div class="ps">
+        <div class="seg"><button class="abtn" id="btnPng2">PNG</button><button class="abtn" id="btnTxt">TXT</button></div>
+        <button class="abtn" id="btnCopy" style="width:100%">COPY TEXT</button>
+        <input type="text" id="outName" placeholder="glitch-art" style="margin-top:6px">
+        <div class="hint" id="outDirInfo"></div>
+      </div>
+    </details>
+
+    <div class="status" id="status">READY.</div>
+  </div>
+
+  <div class="right">
+    <div class="right-bar"><span id="modeLabel">GLYPH MODE</span><span id="dimInfo">—</span></div>
+    <div class="output-wrap" id="outputWrap">
+      <canvas id="outCv"></canvas>
+      <div id="thumbStrip"></div>
+      <div id="viewSel"><button class="abtn pri" data-v="combined" title="All layers, as exported">COMBINED</button><button class="abtn" data-v="solo" title="Only the selected layer">SELECTED LAYER</button></div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

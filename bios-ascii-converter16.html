@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GLYPH / PIXEL ART CONVERTER v10</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--c:#39ff14;--bg:#070700;--bg2:#040400;--panel-w:clamp(300px,24vw,400px);--ug:1.3;--mono:'VT323','Courier New',monospace;--ui:'Courier New',Courier,monospace}
+body{background:var(--bg);color:var(--c);font-family:var(--ui);font-size:15px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:9999}
+.topbar{flex-shrink:0;display:flex;align-items:center;border-bottom:1px solid color-mix(in srgb,var(--c) 25%,transparent);height:34px;padding:0 10px}
+.topbar-title{opacity:.5;margin-right:auto;font-size:13px;letter-spacing:1.5px}
+.mode-btn{background:transparent;border:none;color:var(--c);font-family:inherit;font-size:13px;letter-spacing:2px;padding:0 12px;height:34px;cursor:pointer;opacity:.4;border-left:1px solid color-mix(in srgb,var(--c) 18%,transparent)}
+.mode-btn.active{opacity:1;background:color-mix(in srgb,var(--c) 8%,transparent)}
+.mode-btn:hover{opacity:.8}
+.main{flex:1;display:flex;min-height:0}
+.left{width:var(--panel-w);flex-shrink:0;border-right:1px solid color-mix(in srgb,var(--c) 15%,transparent);display:flex;flex-direction:column;overflow-y:auto}
+.left::-webkit-scrollbar{width:3px}.left::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--c) 28%,transparent)}
+.right{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.right-bar{flex-shrink:0;display:flex;justify-content:space-between;padding:3px 10px;font-size:12px;letter-spacing:2px;opacity:.3;border-bottom:1px solid color-mix(in srgb,var(--c) 8%,transparent)}
+.output-wrap{flex:1;min-height:0;overflow:hidden;background:var(--bg2);position:relative;display:flex;align-items:center;justify-content:center}
+#outCv{display:block;image-rendering:pixelated;image-rendering:crisp-edges;max-width:100%;max-height:100%}
+#thumbStrip{position:absolute;top:8px;right:8px;z-index:6;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;max-width:46%;pointer-events:none}
+.thumb{pointer-events:auto;position:relative;width:64px;height:48px;border:1px solid color-mix(in srgb,var(--c) 30%,transparent);background:#000c;cursor:pointer;opacity:.7;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .12s}
+.thumb:hover{opacity:1}
+.thumb.sel{opacity:1;border-color:var(--c);box-shadow:0 0 9px color-mix(in srgb,var(--c) 75%,transparent)}
+.thumb.off{opacity:.28}
+.thumb img{max-width:100%;max-height:100%;display:block;image-rendering:pixelated}
+.thumb .tn{position:absolute;left:0;bottom:0;right:0;font-size:9px;line-height:1.2;background:#000b;padding:0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumb i{display:none;position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c)}
+.thumb.live i{display:block}
+#viewSel{position:absolute;bottom:8px;right:8px;z-index:6;display:flex}
+#viewSel .abtn{padding:4px 9px;font-size:11px;background:#000c;opacity:.7}
+#viewSel .abtn.pri{opacity:1}
+.output-wrap::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 calc(var(--ug)*70px) color-mix(in srgb,var(--c) 18%,transparent)}
+.ps{padding:9px 11px;border-bottom:1px solid color-mix(in srgb,var(--c) 8%,transparent)}
+.slabel{font-size:12px;letter-spacing:2.5px;opacity:.35;margin-bottom:5px;display:block;text-transform:uppercase}
+details.sec>summary{list-style:none;cursor:pointer;padding:8px 11px;font-size:13px;letter-spacing:3px;background:var(--bg);border-bottom:1px solid color-mix(in srgb,var(--c) 22%,transparent);position:sticky;top:0;z-index:5;user-select:none}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec[open]>summary::before{content:'▾  '}
+details.sec:not([open])>summary::before{content:'▸  '}
+.ctrl{display:flex;flex-direction:column;gap:3px;margin-bottom:7px}
+.ch{font-size:12px;letter-spacing:.5px;display:flex;justify-content:space-between;opacity:.5}
+.ch span{opacity:1;color:var(--c)}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:color-mix(in srgb,var(--c) 22%,transparent);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:var(--c);cursor:pointer;box-shadow:0 0 5px var(--c)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--c);border:none;cursor:pointer;box-shadow:0 0 5px var(--c)}
+select,input[type=text],textarea{background:var(--bg);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 25%,transparent);padding:4px 6px;font-family:inherit;font-size:13px;width:100%;outline:none}
+textarea{resize:vertical;min-height:56px}
+.tog{width:26px;height:13px;background:color-mix(in srgb,var(--c) 15%,transparent);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);cursor:pointer;position:relative;flex-shrink:0;transition:background .15s}
+.tog.on{background:color-mix(in srgb,var(--c) 35%,transparent);border-color:var(--c)}
+.tog::after{content:'';position:absolute;top:1px;left:1px;width:9px;height:9px;background:var(--c);opacity:.35;transition:left .15s,opacity .15s}
+.tog.on::after{left:14px;opacity:1}
+.tr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.tl{font-size:12px;letter-spacing:.5px;opacity:.5}
+.abtn{background:transparent;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);padding:5px 8px;font-family:inherit;font-size:12px;letter-spacing:.5px;cursor:pointer;text-align:center;transition:all .12s}
+.abtn:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,transparent)}
+.abtn.pri{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+.abtn.big{width:100%;padding:9px;font-size:14px;letter-spacing:2px;margin-top:6px}
+.abtn:disabled{opacity:.3;cursor:not-allowed}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:5px}
+.seg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:5px}
+.hint{font-size:12px;opacity:.5;margin:2px 0 8px;line-height:1.4}
+.status{font-size:12px;opacity:.6;padding:6px 11px;border-top:1px solid color-mix(in srgb,var(--c) 7%,transparent);flex-shrink:0;min-height:24px;position:sticky;bottom:0;background:var(--bg)}
+.layer-list{display:flex;flex-direction:column;gap:3px;margin-bottom:6px}
+.layer{display:flex;align-items:center;gap:6px;padding:5px 6px;border:1px solid color-mix(in srgb,var(--c) 20%,transparent);cursor:pointer;font-size:12px}
+.layer.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,transparent)}
+.layer.broken{border-color:#ff3b3b;background:color-mix(in srgb,#ff3b3b 8%,transparent)}
+.layer .eye{width:14px;text-align:center;opacity:.5}
+.layer .eye.on{opacity:1}
+.layer .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer .tp{font-size:11px;opacity:.4}
+.cbtn-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.cbtn{white-space:nowrap;overflow:hidden;background:transparent;border:1px solid currentColor;padding:4px 2px;font-family:inherit;font-size:12px;cursor:pointer;opacity:.5}
+.cbtn.active{opacity:1;outline:1px solid currentColor;outline-offset:2px}
+.cbtn:hover{opacity:.8}
+.pop{display:none;position:fixed;top:36px;right:8px;width:340px;background:var(--bg);border:1px solid var(--c);padding:10px;z-index:100}
+.pop.open{display:block}
+.sub{padding:6px 0 0;margin-top:6px;border-top:1px solid color-mix(in srgb,var(--c) 10%,transparent)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <button class="mode-btn" id="btnSide" style="border-left:none;opacity:.8">◧</button>
+  <span class="topbar-title">GLYPH / PIXEL ART CONVERTER v11</span>
+  <button class="mode-btn active" id="btnModeGlyph" title="Selected image layer → ASCII glyphs (Shift = all image layers)">ASCII</button>
+  <button class="mode-btn" id="btnModePixel" title="Selected image layer → pixel art (Shift = all image layers)">PIXEL ART</button>
+  <button class="mode-btn" id="btnModeImage" title="Selected image layer → plain picture (Shift = all image layers)">IMAGE</button>
+  <button class="mode-btn" id="btnSaveProj">SAVE</button>
+  <button class="mode-btn" id="btnOpenProj">OPEN</button>
+  <input type="file" id="projIn" accept=".json,.gz" style="display:none">
+  <button class="mode-btn" id="btnPng">PNG</button>
+  <button class="mode-btn" id="btnAnim">EXPORT</button>
+  <button class="mode-btn active" id="btnGlitchQ">◉ GLITCH</button>
+  <button class="mode-btn" id="btnZoomDn" title="Smaller interface">A−</button>
+  <button class="mode-btn" id="btnZoomUp" title="Bigger interface">A+</button>
+  <button class="mode-btn" id="btnSettings">⚙ UI</button>
+</div>
+<div class="pop" id="settingsPop">
+  <span class="slabel">:: Interface</span>
+  <div class="ctrl"><div class="ch">UI GLOW <span id="uiGlowVal">130%</span></div><input type="range" id="uiGlow" min="0" max="250" value="130"></div>
+  <div id="uiColorPanel"></div>
+</div>
+<div class="main">
+  <div class="left" id="leftPanel">
+
+    <details class="sec" data-k="layers" open><summary>LAYERS</summary>
+      <div class="ps">
+        <div class="ctrl"><div class="ch">CANVAS ASPECT <span style="opacity:.5">· fits the window, never stretched</span></div>
+          <select id="canvasAspect"><option value="auto">AUTO (first image)</option><option value="16:9">16:9</option><option value="4:3">4:3</option><option value="3:2">3:2</option><option value="1:1">1:1 square</option><option value="3:4">3:4 portrait</option><option value="9:16">9:16 portrait</option><option value="21:9">21:9 wide</option></select></div>
+        <div class="layer-list" id="layerList"></div>
+        <div class="seg"><button class="abtn" id="btnAddImg">+ IMAGE</button><button class="abtn" id="btnAddTxt">+ TEXT</button></div>
+        <div class="seg3">
+          <button class="abtn" id="btnLayerUp">↑</button>
+          <button class="abtn" id="btnLayerDn">↓</button>
+          <button class="abtn" id="btnLayerDel">DEL</button>
+        </div>
+        <div class="tr"><span class="tl">IN ROLL SWAP</span><div class="tog" id="tInRoll" data-on="0"></div></div>
+        <input type="file" id="fileImg" accept="image/*" style="display:none">
+      </div>
+      <div class="ps" id="layerProps"></div>
+    </details>
+
+    <details class="sec" data-k="roll"><summary>IMAGE SEQUENCE (ROLL SWAP)</summary>
+      <div class="ps">
+        <div class="hint">Mark image layers <b>IN ROLL SWAP</b> (LAYERS ▸ below the list). The next image takes over on the timer, or when you hit SWITCH NOW.</div>
+        <div class="tr"><span class="tl">ROLL SWAP TO NEXT IMAGE</span><div class="tog on" id="tRollOn" data-on="1"></div></div>
+        <div class="ctrl"><div class="ch">SWITCH STYLE</div>
+          <select id="rollStyle">
+            <optgroup label="PERMANENT SWITCH (cycles images)">
+              <option value="vroll">V-HOLD ROLL (vertical slide)</option>
+              <option value="hslide">HORIZONTAL SLIDE</option>
+              <option value="sync">SYNC BAR SWEEP</option>
+              <option value="blocks">BLOCK REVEAL</option>
+              <option value="crossfade">CROSSFADE</option>
+              <option value="flash">FLASH CUT</option>
+              <option value="burst" selected>BURST FLASH (next appears in glitch)</option>
+              <option value="hardcut">HARD CUT</option>
+            </optgroup>
+            <optgroup label="GLITCH INTRUSION (image 1 stays main)">
+              <option value="intrude">INTRUDE (image 2 slabs)</option>
+              <option value="ghost">GHOST ECHO (image 2 afterimage)</option>
+              <option value="subliminal">SUBLIMINAL (1-frame flash)</option>
+              <option value="peek">PEEK (image 2 for a moment)</option>
+              <option value="hold">HOLD (image 2 for a beat)</option>
+            </optgroup>
+          </select></div>
+        <div class="ctrl"><div class="ch">SWAP EVERY <span id="rollEveryVal">5</span>s</div><input type="range" id="rollEvery" min="2" max="20" value="5"></div>
+        <div class="ctrl"><div class="ch">TRANSITION LENGTH <span id="rollDurVal">AUTO</span></div><input type="range" id="rollDur" min="0" max="3000" step="50" value="0"></div>
+        <div class="seg" style="margin-top:4px"><button class="abtn" id="btnRollNow">▶ SWITCH NOW</button><button class="abtn" id="btnRollReset">↻ RESET CYCLE</button></div>
+      </div>
+    </details>
+
+    <details class="sec" data-k="glitch"><summary>GLITCH (per layer)</summary>
+      <div class="ps">
+        <div class="hint">These controls edit the <b>selected layer</b>: <b id="glLayerName">—</b>. Each layer keeps its own glitch.</div>
+        <div class="tr"><span class="tl">GLITCH ON THIS LAYER</span><div class="tog on" id="tLayerGl" data-on="1"></div></div>
+        <button class="abtn" id="btnGlCopyAll">COPY THESE TO ALL LAYERS</button>
+        <div class="seg"><button class="abtn pri" id="ordAfter">OUTPUT</button><button class="abtn" id="ordBefore">SOURCE</button></div>
+        <div class="hint">SOURCE = glitch happens before pixel-stack effects. OUTPUT = glitch happens after pixel-stack effects.</div>
+        <div class="tr"><span class="tl">MASTER GLITCH (all layers)</span><div class="tog on" id="tGlitch" data-on="1"></div></div>
+        <div class="ctrl"><div class="ch">INTENSITY <span id="gAmtVal">50</span></div><input type="range" id="gAmt" min="0" max="100" value="50"></div>
+        <div class="ctrl"><div class="ch">SPEED <span id="gSpdVal">50</span></div><input type="range" id="gSpd" min="1" max="100" value="50"></div>
+        <div class="ctrl"><div class="ch">BURST FREQ <span id="gFreqVal">40</span></div><input type="range" id="gFreq" min="0" max="100" value="40"></div>
+        <div class="tr"><span class="tl">RGB SPLIT</span><div class="tog on" data-fx="rgb" data-on="1"></div></div>
+        <div class="tr"><span class="tl">SLICE TEAR</span><div class="tog on" data-fx="slice" data-on="1"></div></div>
+        <div class="tr"><span class="tl">ROW SHIFT</span><div class="tog on" data-fx="rowshift" data-on="1"></div></div>
+        <div class="tr"><span class="tl">BLOCK CORRUPT</span><div class="tog on" data-fx="block" data-on="1"></div></div>
+        <div class="tr"><span class="tl">V-HOLD ROLL</span><div class="tog" data-fx="roll" data-on="0"></div></div>
+        <div class="tr"><span class="tl">STATIC NOISE</span><div class="tog on" data-fx="noise" data-on="1"></div></div>
+        <div class="tr"><span class="tl">FLICKER</span><div class="tog on" data-fx="flick" data-on="1"></div></div>
+        <div class="tr"><span class="tl">WOBBLE</span><div class="tog on" data-fx="wobble" data-on="1"></div></div>
+        <div class="tr"><span class="tl">MATRIX RAIN</span><div class="tog" data-fx="rain" data-on="0"></div></div>
+        <div class="tr"><span class="tl">STREAK NOISE</span><div class="tog" data-fx="streak" data-on="0"></div></div>
+        <div class="tr"><span class="tl">SCAN BARS</span><div class="tog" data-fx="bars" data-on="0"></div></div>
+        <div class="tr"><span class="tl">ROW SMEAR</span><div class="tog" data-fx="smear" data-on="0"></div></div>
+        <div class="ctrl"><div class="ch">STREAK COLORS</div><select id="gStreakCol"><option value="analog">ANALOG (red / blue / cyan)</option><option value="phos">PHOSPHOR (output color)</option></select></div>
+        <button class="abtn" id="btnBreakup" style="width:100%;margin-top:4px">▶ PRESET: SIGNAL BREAKUP</button>
+      </div>
+      <div class="ps">
+        <span class="slabel">:: Advanced pixel stack</span>
+        <div class="tr"><span class="tl">FREEZE (STATIC)</span><div class="tog" id="tPgStatic" data-on="0"></div></div>
+        <div class="ctrl"><div class="ch">AMOUNT <span id="pgAmtVal">5</span></div><input type="range" id="pgAmt" min="1" max="10" value="5"></div>
+        <div class="ctrl"><div class="ch">SEED <span id="pgSeedVal">42</span></div><input type="range" id="pgSeed" min="0" max="999" value="42"></div>
+        <div class="tr"><span class="tl">CRT WARP</span><div class="tog" data-pg="warp" data-on="0"></div></div>
+        <div class="tr"><span class="tl">CHROMA SPLIT</span><div class="tog" data-pg="chroma" data-on="0"></div></div>
+        <div class="tr"><span class="tl">PIXEL SORT</span><div class="tog" data-pg="sort" data-on="0"></div></div>
+        <div class="tr"><span class="tl">ROW JITTER</span><div class="tog" data-pg="jitter" data-on="0"></div></div>
+        <div class="tr"><span class="tl">DATAMOSH</span><div class="tog" data-pg="mosh" data-on="0"></div></div>
+        <div class="tr"><span class="tl">PIXEL STRETCH</span><div class="tog" data-pg="stretch" data-on="0"></div></div>
+        <div class="tr"><span class="tl">GHOST ECHO</span><div class="tog" data-pg="ghost" data-on="0"></div></div>
+        <div class="tr"><span class="tl">VHS TRACKING</span><div class="tog" data-pg="vhs" data-on="0"></div></div>
+        <div class="tr"><span class="tl">TAPE DROPOUT</span><div class="tog" data-pg="dropout" data-on="0"></div></div>
+        <div class="tr"><span class="tl">CONTRAST CRUSH</span><div class="tog" data-pg="crush" data-on="0"></div></div>
+      </div>
+    </details>
+
+    <details class="sec" data-k="export"><summary>EXPORT</summary>
+      <div class="ps">
+        <div class="ctrl"><div class="ch">FORMAT</div>
+          <select id="animFmt">
+            <option value="webm">WEBM — WebCodecs (fast, small)</option>
+            <option value="gif">GIF</option>
+            <option value="apng">APNG</option>
+            <option value="zip">PNG SEQUENCE (.zip)</option>
+          </select></div>
+        <div class="ctrl" id="rowFrames"><div class="ch">FRAMES <span id="gifFramesVal">40</span></div><input type="range" id="gifFrames" min="10" max="120" value="40"></div>
+        <div class="ctrl" id="rowSecs" style="display:none"><div class="ch">LENGTH <span id="vidSecsVal">6</span>s</div><input type="range" id="vidSecs" min="2" max="60" value="6"></div>
+        <div class="ctrl" id="rowBps" style="display:none"><div class="ch">BITRATE <span id="vidBpsVal">4.0</span>Mbps</div><input type="range" id="vidBps" min="1" max="20" step="0.5" value="4"></div>
+        <div class="ctrl"><div class="ch">WIDTH <span id="gifWVal">640</span>px</div><input type="range" id="gifW" min="240" max="1200" step="20" value="640"></div>
+        <div class="ctrl"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="syncPrev" checked> PREVIEW = EXPORT</label></div>
+        <div class="hint">ON: the preview renders at export size and loops over the export length with the same seeded glitch, so what you watch is what the file contains. Changing a glitch setting shows its final look from the next loop.</div>
+        <div id="rowGifOpts" style="display:none">
+          <div class="ctrl"><div class="ch">COLORS</div>
+            <select id="gifColors">
+              <option value="256">256</option><option value="128">128</option><option value="64">64</option>
+              <option value="32">32</option><option value="16">16</option><option value="8">8</option>
+            </select></div>
+          <div class="ctrl"><div class="ch">LOSSY <span id="gifLossyVal">OFF</span></div><input type="range" id="gifLossy" min="0" max="40" value="0"></div>
+        </div>
+        <div class="ctrl"><div class="ch">TRIGGER SWAP AT <span id="exSwapAtVal">40</span>%</div><input type="range" id="exSwapAt" min="5" max="95" value="40"></div>
+        <div id="exSummary" style="font-size:12px;opacity:.7;margin:6px 0"></div>
+        <div class="hint">Export always captures the COMBINED view, regardless of the current preview mode.</div>
+        <button class="abtn pri big" id="btnExport">EXPORT</button>
+      </div>
+      <div class="ps">
+        <div class="seg"><button class="abtn" id="btnPng2">PNG</button><button class="abtn" id="btnTxt">TXT</button></div>
+        <button class="abtn" id="btnCopy" style="width:100%">COPY TEXT</button>
+        <input type="text" id="outName" placeholder="glitch-art" style="margin-top:6px">
+        <div class="hint" id="outDirInfo"></div>
+      </div>
+    </details>
+
+    <div class="status" id="status">READY.</div>
+  </div>
+
+  <div class="right">
+    <div class="right-bar"><span id="modeLabel">GLYPH MODE</span><span id="dimInfo">—</span></div>
+    <div class="output-wrap" id="outputWrap">
+      <canvas id="outCv"></canvas>
+      <div id="thumbStrip"></div>
+      <div id="viewSel"><button class="abtn pri" data-v="combined" title="All layers, as exported">COMBINED</button><button class="abtn" data-v="solo" title="Only the selected layer">SELECTED LAYER</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// CONFIGURATION / CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+const REF_HEIGHT = 720;
+const MIN_EXPORT_FPS = 8;
+const MAX_EXPORT_FPS = 30;
+const EXPORT_FRAME_PADDING_MS = 20;
+const EXPORT_SEED = 0x5EED1E55;          // fixed seed: glitch bursts / transition durations repeat on every export
+const EXPORT_MEM_BUDGET = 700e6;         // bytes of raw RGBA allowed for buffered formats (GIF / APNG / PNG zip)
+const WEBM_QUEUE_MAX = 6;                // max frames waiting inside the VideoEncoder
+const ROLL_SEED = (EXPORT_SEED ^ 0x9E3779B9) | 0;
+const TL_MAX_DT = 50;                    // timeline never advances more than this per frame, so lag slows the preview instead of skipping glitch steps
+const GLITCH_MAX_CATCHUP = 8;            // safety cap on glitch steps replayed in one frame
+const TR_NOISE_STEP = 55;                // transition randomness changes every 55 ms of timeline
+const DEFAULT_GLOW = 10;
+const MIN_BLOCK_SIZE = 2;
+const MAX_BLOCK_SIZE = 64;
+const MIN_COLS = 20;
+const MAX_COLS = 400;
+const MIN_EXPORT_WIDTH = 240;
+const MAX_EXPORT_WIDTH = 1200;
+const MAX_LIGHT_IMG_DIM = 1280;
+
+const CHARSETS = [
+  ' ░▒▓█',' .`-_\':;,^"~=+|!?tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$',
+  ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/*tfjrxnuvczXYUJCLQ0OZmwqpdbkhao#MW&8%B@$',
+  ' .:;|+#@',' 1234567890',' 0123456789ABCDEF',' .+*%&$#@',
+  ' ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ',
+  ' ･ｦｲｸｺｿﾁﾄﾊﾋﾌﾘﾛﾝ012345789Z',
+  ' ─━│┃┄┅┆┇┈┉┊┋┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╔╗╚╝╬',
+  ' ░▒▓:./\\|#@',
+  ' ⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒⠓⠔⠕⠖⠗⠘⠙⠚⠛⠜⠝⠞⠟⠠⠡⠢⠣⠤⠥⠦⠧⠨⠩⠪⠫⠬⠭⠮⠯⠰⠱⠲⠳⠴⠵⠶⠷⠸⠹⠺⠻⠼⠽⠾⠿⣿',
+  ' ▁▂▃▄▅▆▇█',' ·•●◉◎⬤',
+  ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~',
+  ' 01',' ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ',' ·∙∘○∑∏∫∂√∞≈≠±×÷#@',' ╌╍┈┉▪▫▬▮▯╳┼╬▚▞▓█',
+];
+const CHARSET_NAMES=['DENSE BLOCKS  ░▒▓█','FINE DETAIL  16-level classic','ULTRA FINE  22-level','MINIMAL  . : | #','NUMBERS  0123456789','HEX  0-9 A-F','SYMBOLS  + * % $ # @','KATAKANA  ｦｧｨｩｪ…','MATRIX  ﾊﾋｼ0ｸZ…','BOX DRAWING  ─│┼╔╗','HATCHING  ░▒▓ : / \\ |','BRAILLE  ⠁⠃⠇⠿⣿','UNICODE BLOCKS  ▁▂▃▄▅▆▇█','DOTS  · • ● ◉ ◎','MIXED DENSE  all printable','BINARY  0 1','RUNES  ᚠᚢᚦᚨᚱ','MATH  ∑∫∂√∞≈','CIRCUIT  ╌┼╬▚▞▓'];
+const COLOR_SET=[['#39ff14','GREEN'],['#ffb000','AMBER'],['#e8e8d8','WHITE','#aaa'],['#00cfff','BLUE'],['#00ffee','CYAN'],['#cc44ff','VIOLET'],['#ff3b3b','RED'],['#ff7a1a','ORANGE'],['#ffe600','YELLOW'],['#b6ff00','LIME'],['#7dffb2','MINT'],['#ff6ad5','PINK'],['#ff00aa','MAGENTA'],['#3d5cff','COBALT'],['#b8f0ff','ICE']];
+const colorBtns=(cur,extra='')=>COLOR_SET.map(([c,n,sw])=>`<button class="cbtn${cur===c?' active':''}" data-c="${c}" data-color="${c}" ${extra} style="color:${sw||c}">■ ${n}</button>`).join('');
+const PALETTES = {
+  pico8: ['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8','#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'],
+  cga:   ['#000000','#55ffff','#ff55ff','#ffffff'],
+  vboy:  ['#000000','#3a0000','#7a0000','#c40000','#ff2020'],
+  vapor: ['#0b0033','#1a1a40','#3a0ca3','#7209b7','#f72585','#4cc9f0','#b8f0ff','#ffffff'],
+  cyber: ['#000814','#001d3d','#003566','#0033ff','#00b4d8','#90e0ef','#ff006e','#ffffff'],
+  sepia: ['#1a0f08','#3b2412','#6b4423','#a06a36','#d19a5c','#f0cf9a','#fff3d6'],
+  ice:   ['#000010','#00061f','#001a6b','#0033ff','#2f6bff','#66aaff','#b8f0ff','#ffffff'],
+  gameboy: ['#0f380f','#306230','#8bac0f','#9bbc0f'],
+  mono:    ['#000000','#333333','#555555','#888888','#bbbbbb','#ffffff'],
+  crt:     ['#001100','#003300','#005500','#008800','#00bb00','#00ee00','#39ff14','#aaffaa'],
+  amber:   ['#1a0800','#3d1800','#7a3200','#b34800','#e06400','#ffaa00','#ffcc44','#ffe8a0'],
+  nes: ['#7C7C7C','#0000FC','#0000BC','#4428BC','#940084','#A80020','#A81000','#881400',
+        '#503000','#007800','#006800','#005800','#004058','#000000','#000000','#000000',
+        '#BCBCBC','#0078F8','#0058F8','#6844FC','#D800CC','#E40058','#F83800','#E45C10',
+        '#AC7C00','#00B800','#00A800','#00A844','#008888','#000000','#000000','#000000',
+        '#F8F8F8','#3CBCFC','#6888FC','#9878F8','#F878F8','#F85898','#F87858','#FCA044',
+        '#F8B800','#B8F818','#58D854','#58F898','#00E8D8','#787878','#000000','#000000',
+        '#FCFCFC','#A4E4FC','#B8B8F8','#D8B8F8','#F8B8F8','#F8A4C0','#F0D0B0','#FCE0A8',
+        '#F8D878','#D8F878','#B8F8B8','#B8F8D8','#00FCFC','#F8D8F8','#000000','#000000'],
+  c64: ['#000000','#ffffff','#880000','#aaffee','#cc44cc','#00cc55','#0000aa','#eeee77',
+        '#dd8855','#664400','#ff7777','#333333','#777777','#aaff66','#0088ff','#bbbbbb'],
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// DOM REFERENCES
+// ═══════════════════════════════════════════════════════════════════
+const $=id=>document.getElementById(id);
+const cv=$('outCv'), ctx=cv.getContext('2d');
+let VIEW_K=1;
+let VIEW_MODE='combined';   // 'combined' | 'solo' (preview only)   // composition scale: canvas height / 720 — sizes, blocks and glow stay proportional at any window size or export size
+const statusEl=$('status'), dimInfo=$('dimInfo');
+const setStatus=m=>{statusEl.textContent='> '+m};
+const hexToRgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const MONO="'VT323','Courier New',monospace";
+const mkCv=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
+
+// ═══════════════════════════════════════════════════════════════════
+// APPLICATION STATE  — single source of truth
+// ═══════════════════════════════════════════════════════════════════
+let _lid=1, _imgSeq=1;
+const uid=()=>_lid++;
+
+function defaultEffects(){
+  return { blur:0, brightness:1, contrast:1, saturate:1, hue:0,
+           sepia:0, grayscale:0, invert:0, posterize:0, threshold:0 };
+}
+function defaultGlyphCfg(){
+  return { cols:160, charset:1, color:'#39ff14', glow:10, spread:1.5,
+           contrast:18, brightness:0, gamma:10, sat:10, hue:0, sharp:0, post:0,
+           edge:0, dither:0, invert:0, mirror:0, vig:0, grain:0, scanR:0, colorFromImage:0 };
+}
+function defaultPixelCfg(){
+  return { block:8, palette:'full', contrast:10, brightness:0, sat:10,
+           dither:0, edge:0, grid:0, scan:0, noise:0 };
+}
+function defaultGl(on){return{on:!!on,before:false,amt:50,spd:50,freq:40,
+  fx:{rgb:1,slice:1,rowshift:1,block:1,roll:0,noise:1,flick:1,wobble:1,rain:0,hold:0,streak:0,bars:0,smear:0},
+  pg:{on:[],amt:5,seed:42,st:false},streakCol:'analog'};}
+// every layer carries its OWN glitch stack + its own transition options
+// fill missing keys IN PLACE — control panels hold references to these objects, so they must never be replaced
+function fillDefaults(obj,defs){for(const k in defs)if(obj[k]===undefined)obj[k]=defs[k];return obj;}
+function fixLayer(L){
+  if(!L.gl){const g=JSON.parse(JSON.stringify(state.glitch));   // legacy project: global glitch → copy onto the layer
+    L.gl={on:true,before:!!g.before,amt:g.amt,spd:g.spd,freq:g.freq,fx:g.fx,pg:g.pg};}
+  L.gl.fx=fillDefaults(L.gl.fx||{},defaultGl().fx);
+  L.gl.pg=fillDefaults(L.gl.pg||{},{on:[],amt:5,seed:42,st:false});
+  if(L.type==='image')L.light=fillDefaults(L.light||{},defaultLight());
+  if(!L.gl.streakCol)L.gl.streakCol='analog';
+  if(!L.trans)L.trans={style:'',dur:0,hold:0};
+}
+// HARD LIGHT: crush shadows to black, flatten the lit planes to one capped grey, keep detail as crisp texture
+const defaultLight=()=>({on:false,black:40,soft:4,tones:3,ceil:56,shade:30,detail:45,grain:0,clean:35});
+const LIGHT_PRESETS={
+  stencil:{black:40,soft:4,tones:3,ceil:56,shade:30,detail:45,grain:0,clean:35},       // the reference look
+  textured:{black:34,soft:10,tones:5,ceil:72,shade:70,detail:85,grain:18,clean:20},    // lit areas keep surface texture
+  deep:{black:55,soft:2,tones:2,ceil:82,shade:10,detail:25,grain:0,clean:45}           // almost pure black / one grey
+};
+function boxBlurF(src,w,h,r){
+  const tmp=new Float32Array(w*h),out=new Float32Array(w*h),inv=1/(2*r+1);
+  for(let y=0;y<h;y++){const o=y*w;let acc=0;
+    for(let k=-r;k<=r;k++)acc+=src[o+Math.min(w-1,Math.max(0,k))];
+    for(let x=0;x<w;x++){tmp[o+x]=acc*inv;acc+=src[o+Math.min(w-1,x+r+1)]-src[o+Math.max(0,x-r)];}}
+  for(let x=0;x<w;x++){let acc=0;
+    for(let k=-r;k<=r;k++)acc+=tmp[Math.min(h-1,Math.max(0,k))*w+x];
+    for(let y=0;y<h;y++){out[y*w+x]=acc*inv;acc+=tmp[Math.min(h-1,y+r+1)*w+x]-tmp[Math.max(0,y-r)*w+x];}}
+  return out;
+}
+// HARD LIGHT core: RGBA data in, flat grey tones out (in place). detailR / cleanR are blur radii in pixels of THIS grid.
+function applyHardLight(d,w,h,lc,detailR,cleanR){
+  const n=w*h,lum=new Float32Array(n);
+  for(let i=0;i<n;i++)lum[i]=(.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2])/255;
+  const blur=lc.detail>0?boxBlurF(lum,w,h,detailR):lum;                 // local average → "clarity" keeps panel lines alive
+  const rc=cleanR,base=rc>0?boxBlurF(boxBlurF(lum,w,h,rc),w,h,rc):lum;    // CLEAN EDGES: smooth grain before the threshold so the light/shadow border stays crisp
+  const k=lc.detail/100*3.2,t=lc.black/100,knee=lc.soft/100*.25,N=Math.max(2,lc.tones|0),ce=lc.ceil/100,sh=lc.shade/100,gr=lc.grain/100;
+  for(let i=0;i<n;i++){
+    const l=base[i]+k*(base[i]-blur[i]);
+    let m=knee>0?clamp01((l-(t-knee))/(2*knee)):(l>=t?1:0);m=m*m*(3-2*m);
+    let o=0;
+    if(m>0){
+      let v=clamp01((l-t)/(1-t+1e-6));v=Math.round(v*(N-1))/(N-1);       // a few flat tones inside the lit area
+      o=ce*((1-sh)+sh*v);
+      if(gr>0)o+=(h01(i,3)-.5)*gr*.3*ce;
+      o*=m;
+    }
+    const g=Math.max(0,Math.min(255,o*255))|0;
+    d[i*4]=d[i*4+1]=d[i*4+2]=g;
+  }
+}
+// returns a canvas with the hard-lit version of the layer's source image (cached until the picture or the sliders change)
+function lightSource(L){
+  const im=L._img,lc=Object.assign(defaultLight(),L.light),key=imgKey(im)+JSON.stringify(lc);
+  if(L._lightKey===key&&L._lightCv)return L._lightCv;
+  const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,sc=Math.min(1,MAX_LIGHT_IMG_DIM/Math.max(iw,ih));
+  const w=Math.max(1,Math.round(iw*sc)),h=Math.max(1,Math.round(ih*sc));
+  const c=mkCv(w,h),x=c.getContext('2d');x.drawImage(im,0,0,w,h);
+  const id=x.getImageData(0,0,w,h);
+  applyHardLight(id.data,w,h,lc,Math.max(2,Math.round(Math.max(w,h)/200)),Math.round(lc.clean/100*4));
+  x.putImageData(id,0,0);
+  L._lightCv=c;L._lightKey=key;return c;
+}
+function newImageLayer(img, name){
+  return { id:uid(), type:'image', name:name||('IMAGE '+(++_imgSeq)),
+    visible:true, opacity:1, blend:'source-over', inRoll:true,
+    src:img.src, _img:img, mode:'glyph',
+    glyphCfg:defaultGlyphCfg(), pixelCfg:defaultPixelCfg(),
+    effects:defaultEffects(), gl:defaultGl(true), trans:{style:'',dur:0,hold:0}, light:defaultLight() };
+}
+// text animation = a CYCLE:  [delay] → IN → HOLD → OUT → GAP → (repeat)   (same model as Typed.js / After Effects animators)
+const ANIM_DEFAULT={kind:'fade',dur:1400,delay:200,ease:'out',loop:false,
+  hold:2500,outKind:'reverse',outDur:900,gap:500,loops:0,      // loop cycle
+  unit:'char',order:'forward',soft:0.35,seed:7,cursor:'off'};   // per-unit reveal
+const normAnim=a=>Object.assign({},ANIM_DEFAULT,a||{});
+function newTextLayer(txt){
+  return { id:uid(), type:'text', name:'TEXT '+_lid,
+    visible:true, opacity:0.85, blend:'lighter', inRoll:false,
+    content:txt||'HELLO', size:64, color:'#39ff14',
+    x:0.5, y:0.5, align:'center',
+    anim:normAnim(), glow:10, track:0,
+    effects:defaultEffects(), gl:defaultGl(false), trans:{style:'',dur:0,hold:0} };
+}
+
+const state = {
+  layers: [],
+  selected: -1,
+  glitch: {
+    on: true, before: false,
+    amt: 50, spd: 50, freq: 40,
+    fx: {rgb:1,slice:1,rowshift:1,block:1,roll:0,noise:1,flick:1,wobble:1,rain:0,hold:0,streak:0,bars:0,smear:0},
+    pg: {on:[], amt:5, seed:42, st:false},
+  },
+  roll: {
+    cur: 0, nextSwap: 0, startCur: 0, rng: null,
+    on: true, style: 'burst', every: 5, dur: 0,   // dur 0 = AUTO (each style has its own natural length, like v9)
+    intr: 0,
+    transition: null, // {fromId, toId, t0, dur}
+  },
+  export: { fmt:'webm', frames:40, secs:6, width:640, bps:4, gifColors:256, gifLossy:0, swapAt:40 },
+  ui: { color:'#39ff14', glow:130, outName:'glitch-art' },
+  canvas: { aspect:'auto' },
+};
+function canvasAspect(){
+  const a=state.canvas.aspect;
+  if(a&&a!=='auto'){const [x,y]=a.split(':').map(Number);return x/y;}
+  const L=state.layers.find(l=>l.type==='image'&&l._img);
+  return L?(L._img.naturalWidth||L._img.width)/(L._img.naturalHeight||L._img.height):16/9;
+}
+
+const selLayer=()=>state.layers[state.selected]||null;
+const rollLayers=()=>state.layers.filter(l=>l.type==='image' && l.inRoll && l.visible);   // hidden layers leave the roll
+
+// ═══════════════════════════════════════════════════════════════════
+// TEXT ANIMATION
+// ═══════════════════════════════════════════════════════════════════
+function ease(kind,p){
+  p=Math.max(0,Math.min(1,p));
+  if(kind==='in')return p*p;
+  if(kind==='out')return 1-(1-p)*(1-p);
+  if(kind==='inout')return p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+  return p;
+}
+function animProgress(a,t){
+  if(!a||a.kind==='none')return {p:1,raw:1};
+  const delay=a.delay||0, dur=a.dur||800;
+  const raw=Math.max(0,Math.min(1,(t-delay)/dur));
+  const pr = a.loop ? ((t-delay)/dur % 1 + 1) % 1 : raw;
+  return { p:ease(a.ease,pr), raw:pr };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FONT METRICS
+// ═══════════════════════════════════════════════════════════════════
+let _fontRatio=null;
+function getFontRatio(){
+  if(_fontRatio)return _fontRatio;
+  const s=document.createElement('span');
+  s.style.cssText='position:absolute;visibility:hidden;font-family:var(--mono);font-size:100px;line-height:1;white-space:pre;';
+  s.textContent='█';
+  document.body.appendChild(s);
+  const r=s.getBoundingClientRect();
+  document.body.removeChild(s);
+  _fontRatio=r.height/r.width;
+  return _fontRatio;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GLYPH GRID  — image → cells of luminance
+// ═══════════════════════════════════════════════════════════════════
+function buildGlyphGrid(src,cfg){
+  const ratio=getFontRatio();
+  const cols=Math.max(8,cfg.cols|0);
+  const rows=Math.max(1,Math.round((src.height/src.width)*cols/ratio));
+  const off=mkCv(cols,rows);
+  const c=off.getContext('2d',{willReadFrequently:true});
+  let f=`contrast(${cfg.contrast/10}) brightness(${1+cfg.brightness/100}) saturate(${cfg.sat/10})`;
+  if(cfg.hue)f+=` hue-rotate(${cfg.hue}deg)`;
+  c.filter=f;
+  if(cfg.mirror){c.save();c.scale(-1,1);c.drawImage(src,-cols,0,cols,rows);c.restore();}
+  else c.drawImage(src,0,0,cols,rows);
+  c.filter='none';
+  const d=c.getImageData(0,0,cols,rows).data;
+  if(Math.abs(cfg.gamma/10-1)>0.05){
+    const g=cfg.gamma/10, lut=new Uint8Array(256);
+    for(let i=0;i<256;i++)lut[i]=Math.round(Math.pow(i/255,g)*255);
+    for(let i=0;i<d.length;i+=4){d[i]=lut[d[i]];d[i+1]=lut[d[i+1]];d[i+2]=lut[d[i+2]];}
+  }
+  if(cfg.post>=2){
+    const step=255/(cfg.post-1);
+    for(let i=0;i<d.length;i+=4){
+      d[i]=Math.round(Math.round(d[i]/step)*step);
+      d[i+1]=Math.round(Math.round(d[i+1]/step)*step);
+      d[i+2]=Math.round(Math.round(d[i+2]/step)*step);
+    }
+  }
+  const lum=new Float32Array(cols*rows);
+  if(cfg.edge){
+    const L=(y,x)=>{const i=(y*cols+x)*4;return 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];};
+    for(let y=1;y<rows-1;y++)for(let x=1;x<cols-1;x++){
+      const gx=-L(y-1,x-1)+L(y-1,x+1)-2*L(y,x-1)+2*L(y,x+1)-L(y+1,x-1)+L(y+1,x+1);
+      const gy=-L(y-1,x-1)-2*L(y-1,x)-L(y-1,x+1)+L(y+1,x-1)+2*L(y+1,x)+L(y+1,x+1);
+      lum[y*cols+x]=Math.sqrt(gx*gx+gy*gy);
+    }
+    let m=0;for(let i=0;i<lum.length;i++)if(lum[i]>m)m=lum[i];
+    if(m>0)for(let i=0;i<lum.length;i++)lum[i]=lum[i]/m*255;
+  } else {
+    for(let i=0;i<cols*rows;i++){const p=i*4;lum[i]=0.299*d[p]+0.587*d[p+1]+0.114*d[p+2];}
+  }
+  if(cfg.vig||cfg.grain||cfg.scanR){
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+      const i=y*cols+x;let l=lum[i];
+      if(cfg.vig){const dx=x/cols-.5,dy=y/rows-.5;l*=1-Math.min(1,(dx*dx+dy*dy)*2.2);}
+      if(cfg.grain)l+=(h01(i,4242)-.5)*60;
+      if(cfg.scanR&&y%2)l*=.6;
+      lum[i]=Math.max(0,Math.min(255,l));
+    }
+  }
+  const charset=CHARSETS[cfg.charset|0];
+  if(cfg.dither){
+    const step=255/(charset.length-1), buf=new Float32Array(lum);
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+      const idx=y*cols+x, o=buf[idx], nw=Math.round(o/step)*step;
+      buf[idx]=nw; const err=o-nw;
+      if(x+1<cols)buf[idx+1]+=err*7/16;
+      if(y+1<rows){if(x>0)buf[idx+cols-1]+=err*3/16;buf[idx+cols]+=err*5/16;if(x+1<cols)buf[idx+cols+1]+=err*1/16;}
+    }
+    lum.set(buf);
+  }
+  if(cfg.invert)for(let i=0;i<lum.length;i++)lum[i]=255-lum[i];
+  return {cols,rows,lum,data:d,charset};
+}
+
+function mixWhite(hex,t){const [r,g,b]=hexToRgb(hex),f=v=>Math.round(v+(255-v)*t);return `rgb(${f(r)},${f(g)},${f(b)})`}
+let _glyphScratch=null;
+function renderGlyphs(src,cfg,outCtx,outW,outH){
+  const {cols,rows,lum,data,charset}=buildGlyphGrid(src,cfg);
+  const cw=outW/cols, ch=outH/rows, glow=cfg.glow, k=Math.min(3,glow/10);
+  if(!_glyphScratch)_glyphScratch=mkCv(outW,outH);
+  const g=_glyphScratch; if(g.width!==outW||g.height!==outH){g.width=outW;g.height=outH;}
+  const gc=g.getContext('2d');
+  gc.setTransform(1,0,0,1,0,0);gc.clearRect(0,0,outW,outH);
+  gc.font=`${ch}px ${MONO}`;gc.textBaseline='top';
+  const core=(glow>0&&!cfg.colorFromImage)?mixWhite(cfg.color,Math.min(.55,.12+k*.08)):cfg.color;
+  gc.fillStyle=core;
+  const n=charset.length-1;
+  for(let gy=0;gy<rows;gy++){
+    const yo=gy*ch;
+    for(let gx=0;gx<cols;gx++){
+      const i=gy*cols+gx;
+      const c1=charset[Math.max(0,Math.min(n,Math.round(lum[i]/255*n)))];
+      if(c1===' ')continue;
+      if(cfg.colorFromImage){
+        const p=i*4,r=data[p],g2=data[p+1],b=data[p+2],m=Math.max(r,g2,b);
+        if(m<8)continue;
+        const kk=Math.min(3,255/m);
+        gc.fillStyle=`rgb(${r*kk|0},${g2*kk|0},${b*kk|0})`;
+      }
+      gc.fillText(c1,gx*cw,yo);
+    }
+  }
+  if(glow>0){
+    // emissive halo: blurred copies of the glyph layer, added on top of each other (GPU filter)
+    const sp=Math.max(.4,cfg.spread);
+    outCtx.save();outCtx.globalCompositeOperation='lighter';
+    [[sp*8*VIEW_K,.12+k*.2],[sp*3.2*VIEW_K,.25+k*.25],[sp*1.2*VIEW_K,.5+k*.2]].forEach(([r,a])=>{
+      outCtx.filter=`blur(${r.toFixed(1)}px)`;outCtx.globalAlpha=Math.min(1,a);outCtx.drawImage(g,0,0);
+    });
+    outCtx.restore();
+  }
+  outCtx.drawImage(g,0,0);
+  return {cols,rows};
+}
+
+function buildAsciiString(src,cfg){
+  const {cols,rows,lum,charset}=buildGlyphGrid(src,cfg);
+  let s='';
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const l=lum[y*cols+x];
+      s+=charset[Math.max(0,Math.min(charset.length-1,Math.round(l/255*(charset.length-1))))];
+    }
+    s+='\n';
+  }
+  return s;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PIXEL RENDER
+// ═══════════════════════════════════════════════════════════════════
+function nearestColorIdx(r,g,b,pal){
+  let best=Infinity,bi=0;
+  for(let i=0;i<pal.length;i++){const p=pal[i],dr=r-p[0],dg=g-p[1],db=b-p[2],d=dr*dr*2+dg*dg*4+db*db*3;if(d<best){best=d;bi=i}}
+  return bi;
+}
+function medianCut(pixels,n){
+  const avg=b=>{let r=0,g=0,bl=0;for(const p of b){r+=p[0];g+=p[1];bl+=p[2];}return [Math.round(r/b.length),Math.round(g/b.length),Math.round(bl/b.length)];};
+  let pts=[];for(let i=0;i<pixels.length;i+=3)pts.push([pixels[i],pixels[i+1],pixels[i+2]]);
+  let buckets=[pts];
+  while(buckets.length<n){
+    let wi=0,mx=0;
+    buckets.forEach((b,i)=>{
+      let r0=255,r1=0,g0=255,g1=0,b0=255,b1=0;
+      for(const p of b){if(p[0]<r0)r0=p[0];if(p[0]>r1)r1=p[0];if(p[1]<g0)g0=p[1];if(p[1]>g1)g1=p[1];if(p[2]<b0)b0=p[2];if(p[2]>b1)b1=p[2];}
+      const rr=Math.max(r1-r0,g1-g0,b1-b0);if(rr>mx){mx=rr;wi=i;}
+    });
+    const b=buckets[wi];
+    let r0=255,r1=0,g0=255,g1=0,b0=255,b1=0;
+    for(const p of b){if(p[0]<r0)r0=p[0];if(p[0]>r1)r1=p[0];if(p[1]<g0)g0=p[1];if(p[1]>g1)g1=p[1];if(p[2]<b0)b0=p[2];if(p[2]>b1)b1=p[2];}
+    const rr=r1-r0,gr=g1-g0,br=b1-b0,ch=rr>=gr&&rr>=br?0:gr>=br?1:2;
+    b.sort((a,c)=>a[ch]-c[ch]);
+    const mid=Math.floor(b.length/2);
+    buckets.splice(wi,1,b.slice(0,mid),b.slice(mid));
+    if(buckets.length>=n)break;
+  }
+  return buckets.filter(b=>b.length).map(avg);
+}
+function samplePalette(img,n){
+  const sw=Math.min(img.width,200), sh=Math.round(sw*img.height/img.width);
+  const c=mkCv(sw,sh);c.getContext('2d').drawImage(img,0,0,sw,sh);
+  const d=c.getContext('2d').getImageData(0,0,sw,sh).data;
+  const total=sw*sh, step=Math.max(1,Math.floor(total/8000));
+  const pts=[];
+  for(let i=0;i<total;i+=step){const p=i*4;if(d[p+3]>10)pts.push(d[p],d[p+1],d[p+2]);}
+  return medianCut(pts,n);
+}
+function renderPixels(src,cfg,outCtx,outW,outH,lc){
+  const bs=Math.max(1,cfg.block*VIEW_K);
+  const bx=Math.max(1,Math.round(outW/bs)), by=Math.max(1,Math.round(outH/bs));
+  const off=mkCv(bx,by);
+  const c=off.getContext('2d',{willReadFrequently:true});
+  c.filter=`contrast(${cfg.contrast/10}) brightness(${1+cfg.brightness/100}) saturate(${cfg.sat/10})`;
+  c.drawImage(src,0,0,bx,by);c.filter='none';
+  const d=c.getImageData(0,0,bx,by).data;
+  let palSrc=src;
+  if(lc){                                       // HARD LIGHT inside pixel mode: every block becomes one flat tone, then the palette is applied
+    applyHardLight(d,bx,by,lc,Math.max(1,Math.round(Math.max(bx,by)/80)),lc.clean>0?Math.max(0,Math.round(lc.clean/100*1.5)):0);
+    const lit=mkCv(bx,by);lit.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(d),bx,by),0,0);palSrc=lit;
+  }
+  let pal=null;
+  if(PALETTES[cfg.palette])pal=PALETTES[cfg.palette].map(hexToRgb);
+  else if(cfg.palette.startsWith('auto'))pal=samplePalette(palSrc,+cfg.palette.replace('auto',''));
+  const out=new Uint8ClampedArray(d);
+  if(pal){
+    if(cfg.dither){
+      const buf=new Float32Array(d);
+      for(let y=0;y<by;y++)for(let x=0;x<bx;x++){
+        const idx=(y*bx+x)*4;
+        const r=Math.max(0,Math.min(255,buf[idx])),g=Math.max(0,Math.min(255,buf[idx+1])),b=Math.max(0,Math.min(255,buf[idx+2]));
+        const [nr,ng,nb]=pal[nearestColorIdx(r,g,b,pal)];
+        out[idx]=nr;out[idx+1]=ng;out[idx+2]=nb;out[idx+3]=255;
+        const er=r-nr,eg=g-ng,eb=b-nb;
+        [[1,0,7/16],[-1,1,3/16],[0,1,5/16],[1,1,1/16]].forEach(([dx,dy,w])=>{
+          const nx=x+dx,ny=y+dy;
+          if(nx>=0&&nx<bx&&ny>=0&&ny<by){const ni=(ny*bx+nx)*4;buf[ni]+=er*w;buf[ni+1]+=eg*w;buf[ni+2]+=eb*w;}
+        });
+      }
+    } else {
+      for(let i=0;i<d.length;i+=4){
+        const [nr,ng,nb]=pal[nearestColorIdx(d[i],d[i+1],d[i+2],pal)];
+        out[i]=nr;out[i+1]=ng;out[i+2]=nb;out[i+3]=255;
+      }
+    }
+  }
+  if(cfg.edge){
+    const L=(r,cc)=>{const j=(r*bx+cc)*4;return out[j]*0.299+out[j+1]*0.587+out[j+2]*0.114;};
+    for(let y=1;y<by-1;y++)for(let x=1;x<bx-1;x++){
+      const i=(y*bx+x)*4;
+      const diff=Math.abs(L(y,x)-L(y-1,x))+Math.abs(L(y,x)-L(y+1,x))+Math.abs(L(y,x)-L(y,x-1))+Math.abs(L(y,x)-L(y,x+1));
+      if(diff>80){out[i]=0;out[i+1]=0;out[i+2]=0;}
+    }
+  }
+  const srcCv=mkCv(bx,by);
+  srcCv.getContext('2d').putImageData(new ImageData(out,bx,by),0,0);
+  outCtx.imageSmoothingEnabled=false;
+  outCtx.drawImage(srcCv,0,0,outW,outH);
+  if(cfg.grid&&bs>=4){outCtx.fillStyle='rgba(0,0,0,.35)';for(let x=0;x<outW;x+=bs)outCtx.fillRect(x,0,1,outH);for(let y=0;y<outH;y+=bs)outCtx.fillRect(0,y,outW,1);}
+  if(cfg.scan){outCtx.fillStyle='rgba(0,0,0,.3)';for(let y=0;y<outH;y+=Math.max(2,bs>>1))outCtx.fillRect(0,y,outW,1);}
+  if(cfg.noise){const nd=outCtx.getImageData(0,0,outW,outH),dd=nd.data;for(let i=0;i<dd.length;i+=4){const n=(h01(i,911)-.5)*50;dd[i]+=n;dd[i+1]+=n;dd[i+2]+=n;}outCtx.putImageData(nd,0,0);}
+  return {bx,by};
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TEXT LAYER RENDER
+// ═══════════════════════════════════════════════════════════════════
+const h01=(a,b=0)=>{let h=(Math.imul(a|0,374761393)+Math.imul(b|0,668265263)+1013904223)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967295;};
+const clamp01=x=>x<0?0:x>1?1:x;
+let _txtScratch=null;
+const SCRAMBLE='▓▒░#@$%&*+=?<>/\\|01{}[]~^';
+
+// where are we in the cycle?  p = reveal amount 0..1, fo = whole-text fade-out multiplier
+function textTimeline(a,t){
+  if(a.kind==='none')return{p:1,fo:1,phase:'hold'};
+  const tt=t-(a.delay||0);
+  if(tt<0)return{p:0,fo:1,phase:'wait'};
+  const inD=Math.max(1,a.dur);
+  if(!a.loop){const x=Math.min(1,tt/inD);return{p:ease(a.ease,x),fo:1,phase:x<1?'in':'hold'};}
+  const hold=Math.max(0,a.hold),gap=Math.max(0,a.gap),outD=a.outKind==='cut'?0:Math.max(1,a.outDur);
+  const len=inD+hold+outD+gap;
+  let cyc=Math.floor(tt/len),x=tt-cyc*len;
+  if(a.loops>0&&cyc>=a.loops-1){x=tt-(a.loops-1)*len;                     // last repeat: play IN and stay
+    return x<inD?{p:ease(a.ease,x/inD),fo:1,phase:'in'}:{p:1,fo:1,phase:'hold'};}
+  if(x<inD)return{p:ease(a.ease,x/inD),fo:1,phase:'in'};
+  x-=inD;
+  if(x<hold)return{p:1,fo:1,phase:'hold'};
+  x-=hold;
+  if(outD>0&&x<outD){const q=x/outD;
+    return a.outKind==='fade'?{p:1,fo:1-q,phase:'out'}:{p:1-ease(a.ease,q),fo:1,phase:'out'};}
+  return{p:0,fo:1,phase:'gap'};
+}
+
+function renderTextLayer(L,W,H,t,outCtx){
+  const A=normAnim(L.anim), tl=textTimeline(A,t);
+  const SZ=L.size*VIEW_K;
+  if(!_txtScratch)_txtScratch=mkCv(W,H);
+  const g=_txtScratch;if(g.width!==W||g.height!==H){g.width=W;g.height=H;}
+  const gc=g.getContext('2d');gc.setTransform(1,0,0,1,0,0);gc.globalAlpha=1;gc.clearRect(0,0,W,H);
+  gc.font=`${SZ}px ${MONO}`;gc.textBaseline='middle';gc.textAlign='left';
+  const track=(L.track||0)*VIEW_K, cw=gc.measureText('M').width+track, lh=SZ*1.05;
+  const lines=L.content.split('\n'), totalH=lines.length*lh, cx=L.x*W, cy=L.y*H, y0=cy-totalH/2+lh/2;
+  // layout is always computed from the FULL text, so nothing jumps while it types in
+  const cells=[];let nU=0,bx0=1e9,bx1=-1e9;
+  lines.forEach((line,li)=>{
+    const lw=line.length*cw, xs=L.align==='left'?cx:L.align==='right'?cx-lw:cx-lw/2;
+    bx0=Math.min(bx0,xs);bx1=Math.max(bx1,xs+lw);
+    let prevSpace=true;
+    for(let j=0;j<line.length;j++){
+      const ch=line[j],sp=ch===' ';let u=-1;
+      if(!sp){ if(A.unit==='line')u=li; else if(A.unit==='word'){if(prevSpace)nU++;u=nU-1;} else {u=nU;nU++;} }
+      prevSpace=sp;
+      cells.push({ch,x:xs+j*cw,y:y0+li*lh,u,i:cells.length});
+    }
+    if(A.unit==='line')nU=li+1;
+  });
+  if(A.unit==='word'){/* nU already counted */}
+  // per-unit order → rank 0..1
+  const n=Math.max(1,nU),rank=new Float32Array(n);
+  const rnd=[...Array(n).keys()].map(i=>[h01(i,A.seed),i]).sort((a,b)=>a[0]-b[0]);
+  const rr=new Float32Array(n);rnd.forEach(([,i],k)=>rr[i]=n>1?k/(n-1):0);
+  for(let i=0;i<n;i++){
+    const f=n>1?i/(n-1):0,d=n>1?Math.abs(i-(n-1)/2)/((n-1)/2):0;
+    rank[i]=A.order==='reverse'?1-f:A.order==='center'?d:A.order==='edges'?1-d:A.order==='random'?rr[i]:f;
+  }
+  const soft=A.kind==='typewriter'?0.0001:n>1?Math.max(0.0001,A.soft):1;
+  const U=new Float32Array(n);
+  for(let i=0;i<n;i++)U[i]=clamp01((tl.p-rank[i]*(1-soft))/soft);
+  const col=L.color,[r,gg,b]=hexToRgb(col),eo=u=>1-Math.pow(1-u,3);
+  const tick=Math.floor(t/55);
+  let clip=null;
+  if(A.kind==='scanreveal'&&A.kind){clip={x:bx0-8,y:cy-totalH/2,w:bx1-bx0+16,h:totalH*tl.p+1};}
+  if(A.kind==='wipe'){clip={x:bx0-8,y:cy-totalH/2-4,w:(bx1-bx0+16)*tl.p,h:totalH+8};}
+  gc.save();
+  if(clip){gc.beginPath();gc.rect(clip.x,clip.y,clip.w,clip.h);gc.clip();}
+  const put=(c,dx,dy,alpha,sc,fill,glyph)=>{
+    if(alpha<=0.003)return;
+    gc.globalAlpha=Math.min(1,alpha);gc.fillStyle=fill;
+    if(sc!==1){gc.save();gc.translate(c.x+cw/2+dx,c.y+dy);gc.scale(sc,sc);gc.fillText(glyph,-cw/2,0);gc.restore();}
+    else gc.fillText(glyph,c.x+dx,c.y+dy);
+  };
+  for(const c of cells){
+    if(c.u<0)continue;
+    const u=U[c.u];
+    const full=A.kind==='none'?1:u;
+    if(full<=0&&A.kind!=='none')continue;
+    const e=eo(u);
+    switch(A.kind){
+      case 'none':case 'scanreveal':case 'wipe': put(c,0,0,1,1,col,c.ch);break;
+      case 'fade': put(c,0,0,u,1,col,c.ch);break;
+      case 'typewriter': put(c,0,0,1,1,col,c.ch);break;
+      case 'slide': put(c,0,(1-e)*SZ*.8,e,1,col,c.ch);break;
+      case 'zoom': put(c,0,0,e,1+(1-e)*1.6,col,c.ch);break;
+      case 'scatter':{const R=SZ*1.2*(1-e);put(c,(h01(c.i,A.seed+1)-.5)*2*R,(h01(c.i,A.seed+2)-.5)*2*R,e,1,col,c.ch);break;}
+      case 'flicker':{const on=u>=1||h01(c.i,tick+A.seed)<u;put(c,0,0,on?(u>=1?1:.5+.5*h01(c.i,tick)):.08,1,col,c.ch);break;}
+      case 'decode':{
+        if(u>=1){put(c,0,0,1,1,col,c.ch);break;}
+        const gl=SCRAMBLE[Math.floor(h01(c.i,tick+A.seed)*SCRAMBLE.length)];
+        put(c,0,0,.55+.45*u,1,col,gl);break;}
+      case 'glitchin':{
+        if(u>=1){put(c,0,0,1,1,col,c.ch);break;}
+        const k=(1-u),jx=(h01(c.i,tick)-.5)*SZ*.5*k,bad=h01(c.i,tick+99)<k*.5;
+        const gl=bad?SCRAMBLE[Math.floor(h01(c.i,tick+7)*SCRAMBLE.length)]:c.ch,sp=k*SZ*.16;
+        put(c,jx-sp,0,.55,1,`rgb(${r},${Math.max(0,gg-110)},${Math.max(0,b-110)})`,gl);
+        put(c,jx+sp,0,.55,1,`rgb(${Math.max(0,r-110)},${Math.max(0,gg-60)},${b})`,gl);
+        put(c,jx,0,Math.min(1,u*2.2),1,col,gl);break;}
+      default: put(c,0,0,1,1,col,c.ch);
+    }
+  }
+  gc.restore();
+  // scan / wipe bar
+  gc.globalAlpha=1;gc.fillStyle=col;
+  if(clip&&tl.p>0&&tl.p<1){
+    if(A.kind==='scanreveal')gc.fillRect(clip.x,clip.y+clip.h,clip.w,Math.max(2,SZ*.06));
+    else gc.fillRect(clip.x+clip.w,clip.y,Math.max(2,SZ*.06),clip.h);
+  }
+  // cursor (Typed.js style): solid while typing, blinks while holding
+  if(A.cursor!=='off'&&(A.kind==='typewriter'||A.kind==='decode')&&cells.length){
+    const vis=tl.phase==='in'||tl.phase==='out'||Math.floor(t/530)%2===0;
+    if(vis){
+      let last=-1;cells.forEach((c,i)=>{if(c.u>=0&&U[c.u]>0)last=i;});
+      const c0=last<0?cells[0]:cells[last],px=last<0?c0.x:c0.x+cw,py=c0.y;
+      gc.globalAlpha=.9;
+      if(A.cursor==='block')gc.fillRect(px,py-lh*.45,cw*.8,lh*.9);
+      else if(A.cursor==='bar')gc.fillRect(px,py-lh*.45,Math.max(2,cw*.14),lh*.9);
+      else gc.fillRect(px,py+lh*.34,cw*.9,Math.max(2,lh*.08));
+    }
+  }
+  // composite: glow halo (GPU blur) + hot core, with whole-text fade-out
+  const glow=L.glow==null?10:L.glow;
+  outCtx.save();outCtx.globalAlpha=tl.fo;
+  if(glow>0){
+    outCtx.globalCompositeOperation='lighter';
+    [[glow*1.1,.55],[glow*.3,.8]].forEach(([rad,al])=>{outCtx.filter=`blur(${rad.toFixed(1)}px)`;outCtx.globalAlpha=tl.fo*al;outCtx.drawImage(g,0,0);});
+    outCtx.filter='none';outCtx.globalCompositeOperation='source-over';outCtx.globalAlpha=tl.fo;
+  }
+  outCtx.drawImage(g,0,0);
+  outCtx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PER-LAYER EFFECTS  — CSS filter chain, GPU-accelerated
+// ═══════════════════════════════════════════════════════════════════
+function applyLayerEffects(buffer, fx){
+  const c=buffer.getContext('2d');
+  const W=buffer.width, H=buffer.height;
+  const parts=[];
+  if(fx.blur>0)        parts.push(`blur(${fx.blur}px)`);
+  if(fx.brightness!==1)parts.push(`brightness(${fx.brightness})`);
+  if(fx.contrast!==1)  parts.push(`contrast(${fx.contrast})`);
+  if(fx.saturate!==1)  parts.push(`saturate(${fx.saturate})`);
+  if(fx.hue)           parts.push(`hue-rotate(${fx.hue}deg)`);
+  if(fx.sepia)         parts.push(`sepia(${fx.sepia})`);
+  if(fx.grayscale)     parts.push(`grayscale(${fx.grayscale})`);
+  if(fx.invert)        parts.push(`invert(${fx.invert})`);
+  if(parts.length){
+    const tmp=mkCv(W,H);
+    const tc=tmp.getContext('2d');
+    tc.filter=parts.join(' ');
+    tc.drawImage(buffer,0,0);
+    c.clearRect(0,0,W,H);
+    c.drawImage(tmp,0,0);
+  }
+  if(fx.posterize>=2||fx.threshold>0){
+    const id=c.getImageData(0,0,W,H), d=id.data;
+    if(fx.posterize>=2){
+      const step=255/(fx.posterize-1);
+      for(let i=0;i<d.length;i+=4){
+        d[i]=Math.round(Math.round(d[i]/step)*step);
+        d[i+1]=Math.round(Math.round(d[i+1]/step)*step);
+        d[i+2]=Math.round(Math.round(d[i+2]/step)*step);
+      }
+    }
+    if(fx.threshold>0){
+      const t=fx.threshold*255;
+      for(let i=0;i<d.length;i+=4){
+        const l=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+        const v=l>t?255:0;
+        d[i]=d[i+1]=d[i+2]=v;
+      }
+    }
+    c.putImageData(id,0,0);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LAYER → BUFFER
+// ═══════════════════════════════════════════════════════════════════
+const _lbCache=new Map();
+let _fontEpoch=0;
+const _imgIds=new WeakMap();let _imgSeqId=1;
+const imgKey=im=>{if(!im)return 0;if(!_imgIds.has(im))_imgIds.set(im,_imgSeqId++);return _imgIds.get(im);};
+// canvas text needs the web font loaded; when it arrives, drop cached glyph buffers
+if(document.fonts&&document.fonts.load)document.fonts.load("20px VT323").then(()=>{_fontRatio=null;_fontEpoch++;}).catch(()=>{});
+function renderLayerToBuffer(L, W, H, t){
+  let e=_lbCache.get(L.id);
+  if(!e||e.buf.width!==W||e.buf.height!==H){e={buf:mkCv(W,H),sig:null};_lbCache.set(L.id,e);}
+  const buf=e.buf;
+  let sig=null;
+  if(L.type==='image'){
+    if(!L._img)return buf;
+    if(!L.light)L.light=defaultLight();
+    sig=JSON.stringify([L.mode,L.mode==='glyph'?L.glyphCfg:L.mode==='pixel'?L.pixelCfg:0,L.light,L.effects,imgKey(L._img),_fontEpoch]);
+    if(e.sig===sig)return buf;           // nothing changed -> reuse the finished frame
+  }
+  const c=buf.getContext('2d');
+  c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;c.globalCompositeOperation='source-over';c.filter='none';c.shadowBlur=0;
+  c.clearRect(0,0,W,H);
+  if(L.type==='image'){
+    const iw=L._img.naturalWidth||L._img.width,ih=L._img.naturalHeight||L._img.height,sc=Math.min(W/iw,H/ih);
+    const fw=Math.max(1,Math.round(iw*sc)),fh=Math.max(1,Math.round(ih*sc)),fx=Math.round((W-fw)/2),fy=Math.round((H-fh)/2);
+    const lightInPixels=L.mode==='pixel'&&L.light.on;                  // pixel mode runs HARD LIGHT on its own grid instead
+    const SRC=(L.light.on&&!lightInPixels)?lightSource(L):L._img;
+    const draw=(cx2)=>{
+      if(L.mode==='glyph')renderGlyphs(SRC,L.glyphCfg,cx2,fw,fh);
+      else if(L.mode==='pixel')renderPixels(SRC,L.pixelCfg,cx2,fw,fh,lightInPixels?L.light:null);
+      else{cx2.imageSmoothingEnabled=true;cx2.imageSmoothingQuality='high';cx2.drawImage(SRC,0,0,fw,fh);}   // IMAGE: the picture itself
+    };
+    if(fw===W&&fh===H&&!fx&&!fy)draw(c);
+    else{const tmp=mkCv(fw,fh);draw(tmp.getContext('2d'));c.drawImage(tmp,fx,fy);}
+  } else if(L.type==='text'){
+    renderTextLayer(L,W,H,t,c);          // animated: redrawn every frame into the same buffer
+  }
+  if(L.effects)applyLayerEffects(buf,L.effects);
+  e.sig=sig;
+  if(_lbCache.size>state.layers.length+2)for(const id of [..._lbCache.keys()])if(!state.layers.some(l=>l.id===id))_lbCache.delete(id);
+  return buf;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TRANSITIONS
+// ═══════════════════════════════════════════════════════════════════
+const TEMP_STYLES=new Set(['peek','subliminal','hold']);      // image 2 shows for a moment, then image 1 comes back
+const PASSIVE_STYLES=new Set(['intrude','ghost']);           // image 1 stays main, image 2 leaks through the glitch
+function autoDur(style,rng){
+  const R=rng||Math.random;
+  switch(style){
+    case 'vroll':return 900+R()*500;   case 'hslide':return 700+R()*350;  case 'sync':return 950+R()*500;
+    case 'blocks':return 750+R()*450;  case 'crossfade':return 900+R()*400; case 'flash':return 520;
+    case 'burst':return 620+R()*420;   case 'hardcut':return 60;
+    case 'peek':return 1100+R()*700;   case 'subliminal':return 50+R()*100; case 'hold':return 1800+R()*1800;
+    default:return 800;
+  }
+}
+// image 2 leaking through image 1 (continuous, deterministic per ~70ms step)
+let _mixCv=null;
+function drawIntrusion(A,B,style,W,H,t){
+  if(!_mixCv)_mixCv=mkCv(W,H);
+  if(_mixCv.width!==W||_mixCv.height!==H){_mixCv.width=W;_mixCv.height=H;}
+  const f=_mixCv.getContext('2d');f.setTransform(1,0,0,1,0,0);f.globalAlpha=1;f.globalCompositeOperation='source-over';f.clearRect(0,0,W,H);
+  f.drawImage(A,0,0);
+  const fi=Math.floor(t/70),r=k=>h01(fi,k),s=H/REF_HEIGHT,env=h01(Math.floor(t/420),7)>.68?1:.18;
+  if(style==='intrude'){
+    const n=2+Math.floor(r(1)*5);
+    for(let i=0;i<n;i++){
+      const sy=Math.floor(r(10+i)*H),sh=Math.max(3,Math.floor((8+r(20+i)*r(30+i)*95)*s)),dx=(r(40+i)-.5)*env*W*.24;
+      f.globalAlpha=.65+.35*r(50+i);f.drawImage(B,0,sy,W,sh,dx,sy,W,sh);
+    }
+    if(r(99)<.04){f.globalAlpha=.35;f.drawImage(B,(r(98)-.5)*6*s,(r(97)-.5)*6*s);}
+  } else {                                                    // ghost echo
+    f.globalAlpha=.15+r(2)*.10;f.drawImage(B,(r(3)-.5)*4*s,(r(4)-.5)*4*s);
+  }
+  f.globalAlpha=1;
+  return _mixCv;
+}
+function blendTransition(A, B, p, style, W, H, t){
+  const F=mkCv(W,H), f=F.getContext('2d');
+  const R=mulberry((((Math.floor(t/TR_NOISE_STEP)+1)*2654435761)^EXPORT_SEED)|0);   // same time => same pattern, in preview and export
+  switch(style){
+    case 'vroll': {
+      const ro=Math.round(p*H);
+      f.drawImage(A,0,ro);
+      f.drawImage(B,0,ro-H);
+      f.fillStyle='#040400';f.fillRect(0,ro-H*0.03,W,H*0.06);
+      f.fillStyle=state.ui.color;f.globalAlpha=0.6;f.fillRect(0,ro-2,W,2);f.globalAlpha=1;
+      break;
+    }
+    case 'hslide': {
+      const xo=-Math.round(p*W);
+      f.drawImage(A,xo,0);
+      f.drawImage(B,xo+W,0);
+      f.fillStyle=state.ui.color;f.globalAlpha=0.7;f.fillRect(xo+W-1,0,2,H);f.globalAlpha=1;
+      break;
+    }
+    case 'hardcut': f.drawImage(p<0.5?A:B,0,0);break;
+    case 'flash': {
+      const peak=1-Math.abs(p-0.5)*2;
+      f.drawImage(p<0.5?A:B,0,0);
+      f.globalCompositeOperation='lighter';
+      f.globalAlpha=peak*0.9;
+      f.fillStyle=state.ui.color;f.fillRect(0,0,W,H);
+      f.globalCompositeOperation='source-over';f.globalAlpha=1;
+      break;
+    }
+    case 'blocks': {
+      const cols=10, rows=8, cw=Math.ceil(W/cols), chh=Math.ceil(H/rows);
+      for(let by=0;by<rows;by++)for(let bx=0;bx<cols;bx++){
+        const seed=((bx*73+by*151+7)*2654435761)>>>0;
+        const thresh=seed/4294967295;
+        const src=p>=thresh?B:A;
+        f.drawImage(src,bx*cw,by*chh,cw,chh,bx*cw,by*chh,cw,chh);
+      }
+      break;
+    }
+    case 'sync': {
+      const y=Math.round(p*H);
+      f.drawImage(B,0,0,W,y,0,0,W,y);
+      f.drawImage(A,0,y,W,H-y,0,y,W,H-y);
+      f.fillStyle=state.ui.color;f.globalAlpha=.9;
+      f.fillRect(0,y-4,W,8);f.globalAlpha=1;
+      break;
+    }
+    case 'burst': {
+      const drive = p<0.5 ? {base:A, slices:B, k:p*2} : {base:B, slices:A, k:(1-p)*2};
+      f.drawImage(drive.base,0,0);
+      const n=Math.floor(2+drive.k*18+8*R());
+      for(let i=0;i<n;i++){
+        const sy=Math.floor(R()*H);
+        const sh=Math.max(2,Math.floor(4+R()*R()*55));
+        const dx=(R()-0.5)*W*0.18;
+        f.drawImage(drive.slices,0,sy,W,sh,dx,sy,W,sh);
+      }
+      break;
+    }
+    case 'subliminal': f.drawImage(B,(R()-.5)*W*.02,0);break;
+    case 'peek': case 'hold': {                              // image 2 on screen, torn in and out by a glitch burst
+      const edge=.14,k=p<edge?1-p/edge:p>1-edge?(p-(1-edge))/edge:0;
+      f.drawImage(B,0,0);
+      const n=k>0?Math.floor(2+k*16+6*R()):0;
+      for(let i=0;i<n;i++){
+        const sy=Math.floor(R()*H),sh=Math.max(2,Math.floor(4+R()*R()*55));
+        f.drawImage(A,0,sy,W,sh,(R()-.5)*W*.18*k,sy,W,sh);
+      }
+      break;
+    }
+    case 'crossfade':
+    default:
+      f.drawImage(A,0,0);
+      f.globalAlpha=p;
+      f.drawImage(B,0,0);
+      f.globalAlpha=1;
+  }
+  return F;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// COMPOSITOR
+// ═══════════════════════════════════════════════════════════════════
+function getRollState(){
+  const rl=rollLayers();
+  if(!rl.length)return null;
+  const curIdx=state.roll.cur % rl.length;
+  const curL=rl[curIdx];
+  const tr=state.roll.transition;
+  if(tr){
+    const nextIdx=(curIdx+1)%rl.length;
+    return { cur:curL, next:rl[nextIdx], tr };
+  }
+  if(PASSIVE_STYLES.has(state.roll.style)&&rl.length>1){
+    const n=rl.length,off=1+((state.roll.intr||0)%(n-1));            // cycle through the other images
+    return { cur:curL, next:rl[(curIdx+off)%n], tr:null, passive:true };
+  }
+  return { cur:curL, next:null, tr:null };
+}
+
+function composeFrame(t,W0,H0,targetCv){
+  let W,H;
+  if(W0){W=W0;H=H0;}                                   // export: exact size requested
+  else{                                                // preview: largest canvas with the project aspect that fits the window
+    const wrap=document.getElementById('outputWrap').getBoundingClientRect();
+    const A=canvasAspect(),mw=Math.max(64,Math.floor(wrap.width)),mh=Math.max(64,Math.floor(wrap.height));
+    let fw,fh;if(mw/mh>A){fh=mh;fw=Math.max(64,Math.floor(fh*A));}else{fw=mw;fh=Math.max(64,Math.floor(fw/A));}
+    if(syncOn()){                                      // render at EXPORT size, show scaled to fit the window
+      W=Math.max(16,+$('gifW').value||640);H=Math.max(16,Math.round(W/A));
+      cv.style.width=fw+'px';cv.style.height=fh+'px';
+    }else{W=fw;H=fh;cv.style.width='';cv.style.height='';}
+  }
+  VIEW_K=H/REF_HEIGHT;
+  const cvs=targetCv||cv;
+  const cxt=cvs.getContext('2d');
+  if(cvs.width!==W||cvs.height!==H){cvs.width=W;cvs.height=H;}
+  cxt.clearRect(0,0,W,H);
+  cxt.fillStyle='#040400';cxt.fillRect(0,0,W,H);
+
+  if(!targetCv&&!W0&&VIEW_MODE==='solo'){                 // just the layer you are editing, with its own effects + glitch
+    const SL=selLayer();
+    if(SL){cxt.globalAlpha=1;cxt.globalCompositeOperation='source-over';cxt.drawImage(layerFrame(SL,W,H,t),0,0);}
+    return;
+  }
+
+  const rs=getRollState();
+  const layerBufs=new Map();
+  for(const L of state.layers){
+    if(!L.visible)continue;
+    if(L.type==='image' && L.inRoll){
+      if(rs && (L.id===rs.cur.id || (rs.next && L.id===rs.next.id))){
+        // compute for roll blend below
+      } else continue;
+    }
+    layerBufs.set(L.id, layerFrame(L, W, H, t));
+  }
+
+  // draw roll result at the bottom (before other layers)
+  if(rs){
+    let rollFrame;
+    if(rs.next && rs.tr){
+      const A=layerBufs.get(rs.cur.id) || layerFrame(rs.cur,W,H,t);
+      const B=layerBufs.get(rs.next.id) || layerFrame(rs.next,W,H,t);
+      const p=Math.min(1,(t-rs.tr.t0)/rs.tr.dur);
+      rollFrame=blendTransition(A,B,p,rs.tr.style,W,H,t);
+    } else if(rs.passive){
+      const A=layerBufs.get(rs.cur.id) || layerFrame(rs.cur,W,H,t);
+      const B=layerBufs.get(rs.next.id) || layerFrame(rs.next,W,H,t);
+      rollFrame=drawIntrusion(A,B,state.roll.style,W,H,t);
+    } else {
+      rollFrame=layerBufs.get(rs.cur.id) || layerFrame(rs.cur,W,H,t);
+    }
+    const own=(rs.next&&rs.tr&&(t-rs.tr.t0)/rs.tr.dur>=.5&&!rs.tr.keep)?rs.next:rs.cur;   // opacity/blend follow whichever layer is on top of the blend
+    cxt.globalAlpha=own.opacity;
+    cxt.globalCompositeOperation=own.blend;
+    cxt.drawImage(rollFrame,0,0);
+  }
+
+  // then non-roll layers
+  for(const L of state.layers){
+    if(!L.visible)continue;
+    if(L.type==='image' && L.inRoll)continue;
+    const buf=layerBufs.get(L.id);
+    if(!buf)continue;
+    cxt.globalAlpha=L.opacity;
+    cxt.globalCompositeOperation=L.blend;
+    cxt.drawImage(buf,0,0);
+  }
+  cxt.globalAlpha=1;cxt.globalCompositeOperation='source-over';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GLITCH (per layer — each layer glitches its own buffer BEFORE compositing / transitions)
+// ═══════════════════════════════════════════════════════════════════
+const GBG='#040400';
+const G={raf:0,last:0,interval:60,fn:0,nPat:null,base:null,
+  burstEnd:0,nextBurst:0,roll:0,bars:[],drops:[]};
+const gCv=mkCv(2,2), gCtx=gCv.getContext('2d');
+
+function mulberry(a){return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+function glitchNoise(){
+  const rn=mulberry(EXPORT_SEED),n=mkCv(256,256),nx=n.getContext('2d'),nd=nx.createImageData(256,256);
+  const [cr,cg,cb]=hexToRgb(state.ui.color);
+  for(let i=0;i<nd.data.length;i+=4){
+    if(rn()<0.3){
+      const k=rn();
+      nd.data[i]=cr+(255-cr)*k*.5;nd.data[i+1]=cg+(255-cg)*k*.5;nd.data[i+2]=cb+(255-cb)*k*.5;nd.data[i+3]=rn()*255;
+    }
+  }
+  nx.putImageData(nd,0,0);
+  G.nPat=gCtx.createPattern(n,'repeat');
+}
+
+function pxGlitch(c,w,h,off,cfg){
+  const T=cfg.on;if(!T.length)return;
+  const n=cfg.amt,seedOff=cfg.st?0:off;
+  const R=mulberry(cfg.seed+1+seedOff),has=k=>T.includes(k);
+  const ri=(a,b)=>a+Math.floor(R()*Math.max(1,b-a));
+  const id=c.getImageData(0,0,w,h),d=id.data,snap=()=>new Uint8ClampedArray(d),W4=w*4;
+  if(has('warp')){const s=snap(),k=n/20,cx=w/2,cy=h/2;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const xn=(x-cx)/cx,yn=(y-cy)/cy,f=1+(xn*xn+yn*yn)*k,sx=Math.min(w-1,Math.max(0,(cx+xn*f*cx)|0)),sy=Math.min(h-1,Math.max(0,(cy+yn*f*cy)|0)),o=(y*w+x)*4,q=(sy*w+sx)*4;d[o]=s[q];d[o+1]=s[q+1];d[o+2]=s[q+2];}}
+  if(has('chroma')){const s=snap(),sh=Math.max(1,Math.round(n*w/400));
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const o=(y*w+x)*4;d[o]=s[(y*w+Math.max(0,x-sh))*4];d[o+2]=s[(y*w+Math.min(w-1,x+sh))*4+2];}}
+  if(has('sort')){const thr=(255-n*20)*3;
+    for(let i=0,c2=Math.floor(n/10*h*.4);i<c2;i++){const y=ri(0,h),o=y*W4;let a=-1,e=-1;
+      for(let x=0;x<w;x++)if(d[o+x*4]+d[o+x*4+1]+d[o+x*4+2]>thr){if(a<0)a=x;e=x;}
+      if(e-a>2){const seg=[];for(let x=a;x<e;x++)seg.push([d[o+x*4],d[o+x*4+1],d[o+x*4+2],d[o+x*4+3]]);seg.sort((p,q)=>p[0]+p[1]+p[2]-q[0]-q[1]-q[2]);seg.forEach((p,j)=>d.set(p,o+(a+j)*4));}}}
+  if(has('jitter')){const m=Math.max(1,n*3);
+    for(let i=0,c2=Math.floor(n/10*h*.5);i<c2;i++){const y=ri(0,h),o=y*W4,sh=ri(-m,m+1);
+      if(sh>0)d.copyWithin(o+sh*4,o,o+W4-sh*4);else if(sh<0)d.copyWithin(o,o-sh*4,o+W4);}}
+  if(has('rowshift')){const s=snap(),maxSh=Math.max(2,Math.round(n*w*0.015)),bandH=Math.max(1,Math.round(1+R()*3));
+    for(let y=0;y<h;y+=bandH){const hh=Math.min(bandH,h-y);if(R()<0.3)continue;
+      const dir=R()<0.5?-1:1,sh=Math.round(dir*maxSh*(0.2+R()*0.9));if(sh===0)continue;
+      const wrap=(x)=>((x-sh)%w+w)%w;
+      for(let yy=y;yy<y+hh;yy++)for(let x=0;x<w;x++){const sx=wrap(x),dst=(yy*w+x)*4,src=(yy*w+sx)*4;d[dst]=s[src];d[dst+1]=s[src+1];d[dst+2]=s[src+2];}}}
+  if(has('mosh')){const s=snap();
+    for(let i=0,c2=Math.floor(n/10*18);i<c2;i++){const bw=ri(Math.max(2,w*.05|0),(w*.3|0)+2),bh=ri(Math.max(2,h*.02|0),(h*.12|0)+2);
+      if(bw>=w||bh>=h)continue;const sx=ri(0,w-bw),sy=ri(0,h-bh),dx=ri(0,w-bw),dy=ri(0,h-bh);
+      for(let y=0;y<bh;y++)d.set(s.subarray(((sy+y)*w+sx)*4,((sy+y)*w+sx+bw)*4),((dy+y)*w+dx)*4);}}
+  if(has('stretch')){const s=snap(),lo=Math.max(1,h/6|0);
+    for(let i=0,c2=Math.floor(n/10*w*.12);i<c2;i++){const x=ri(0,w),sy=ri(0,h>>1),len=ri(lo,Math.max(lo+1,(h*.7*n/10|0)+1)),q=(sy*w+x)*4;
+      for(let y=sy;y<Math.min(h,sy+len);y++)d.set(s.subarray(q,q+4),(y*w+x)*4);}}
+  if(has('ghost')){const s=snap(),it=n/10,sx=ri(-(15*it|0),(15*it|0)+1),sy=ri(-(10*it|0),(10*it|0)+1),a=it*.4;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const o=(y*w+x)*4,q=(((y-sy+h)%h)*w+((x-sx+w)%w))*4;for(let k=0;k<3;k++)d[o+k]=s[o+k]*(1-a)+s[q+k]*a;}}
+  if(has('vhs'))for(let i=0,c2=Math.floor(n/10*20);i<c2;i++){const y=ri(0,h),o=y*W4,sh=ri(-8,9),m=.7+R()*.3,row=d.slice(o,o+W4);
+    for(let x=0;x<w;x++){const sx=Math.min(w-1,Math.max(0,x-sh));d[o+x*4]=row[sx*4]*m;d[o+x*4+1]*=m;d[o+x*4+2]*=m;}}
+  if(has('dropout'))for(let i=0,c2=Math.floor(n/10*12);i<c2;i++){const y=ri(0,h),len=ri(1,(w/10|0)+2),x=ri(0,w-len);
+    for(let j=0;j<len;j++){const o=(y*w+x+j)*4;d[o]=R()*255;d[o+1]=R()*255;d[o+2]=R()*255;}}
+  if(has('crush')){const bp=n*4,k=255/Math.max(1,255-n*2.5-bp);
+    for(let i=0;i<d.length;i+=4){d[i]=(d[i]-bp)*k;d[i+1]=(d[i+1]-bp)*k;d[i+2]=(d[i+2]-bp)*k;}}
+  c.putImageData(id,0,0);
+}
+
+function applyGeomEffects(v,srcCanvas,W,H,s,e,inB,R,fx){
+  if(fx.slice){
+    const n=inB?2+Math.floor(e*14*R()):(R()<e*.6?1:0);
+    for(let i=0;i<n;i++){
+      const sy=Math.floor(R()*H),sh=Math.max(1,Math.min(H-sy,Math.floor((1+R()*R()*70)*s)));
+      const sg=R()<.5?-1:1,shift=sg*(4*s+R()*R()*e*W*.2);
+      const tmp=mkCv(W,sh);
+      tmp.getContext('2d').drawImage(srcCanvas,0,sy,W,sh,0,0,W,sh);
+      v.clearRect(0,sy,W,sh);
+      v.drawImage(tmp,shift,sy);
+      v.drawImage(tmp,shift-sg*W,sy);
+    }
+  }
+  if(fx.rowshift){
+    const maxAmt=s*(3+e*60),bandH=Math.max(1,Math.round(s*(1+R()*2)));
+    const tmp=mkCv(W,H);tmp.getContext('2d').drawImage(srcCanvas,0,0);
+    for(let y=0;y<H;y+=bandH){
+      const h=Math.min(bandH,H-y);
+      if(R()<.35)continue;
+      const dir=R()<.5?-1:1,amt=Math.round(dir*maxAmt*(.15+R()*R()));
+      if(Math.abs(amt)<1)continue;
+      v.clearRect(0,y,W,h);
+      v.drawImage(tmp,0,y,W,h,amt,y,W,h);
+      v.drawImage(tmp,0,y,W,h,amt+(amt>0?-W:W),y,W,h);
+    }
+  }
+  if(fx.block&&inB){
+    const n=Math.floor(e*7*R());
+    for(let i=0;i<n;i++){
+      const w=Math.floor((30+R()*220)*s),h=Math.floor((4+R()*40)*s);
+      const sx=Math.floor(R()*Math.max(1,W-w)),sy=Math.floor(R()*Math.max(1,H-h));
+      const dx=sx+Math.floor((R()-.5)*W*.3),dy=sy+Math.floor((R()-.5)*40*s);
+      v.drawImage(srcCanvas,sx,sy,w,h,dx,dy,w,h);
+    }
+  }
+  if(fx.smear){
+    const nb=inB?1+Math.floor(e*5*R()):(R()<.25?1:0),rh=Math.max(1,Math.round(s));
+    const tmp=mkCv(W,H);tmp.getContext('2d').drawImage(srcCanvas,0,0);
+    for(let b=0;b<nb;b++){
+      const y0=Math.floor(R()*H),bh=Math.floor((6+R()*50)*s),amp=(4+e*40)*s;
+      for(let y=y0;y<Math.min(H-rh,y0+bh);y+=rh){
+        const dx=(R()-.5)*amp*(.3+R());
+        v.clearRect(0,y,W,rh);
+        v.drawImage(tmp,0,y,W,rh,dx,y,W,rh);
+        v.drawImage(tmp,0,y,W,rh,dx+(dx>0?-W:W),y,W,rh);
+      }
+    }
+  }
+}
+
+function ghostCopy(S,key,base,color,W,H){
+  let c=S[key];if(!c||c.width!==W||c.height!==H)c=S[key]=mkCv(W,H);
+  const x=c.getContext('2d');x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.clearRect(0,0,W,H);
+  x.filter='grayscale(1) contrast(1.4) brightness(1.3)';x.drawImage(base,0,0);x.filter='none';
+  x.globalCompositeOperation='multiply';x.fillStyle=color;x.fillRect(0,0,W,H);
+  x.globalCompositeOperation='destination-in';x.drawImage(base,0,0);
+  x.globalCompositeOperation='source-over';
+  return c;
+}
+function seedFor(id){let h=EXPORT_SEED|0;const q=String(id);for(let i=0;i<q.length;i++)h=Math.imul(h^q.charCodeAt(i),16777619);return h>>>0;}
+// returns the glitched version of ONE layer's buffer (or the buffer itself when this layer has glitch off)
+function glitchBuffer(L,buf,t){
+  if(!L.gl||!L.trans)fixLayer(L);
+  const gl=L.gl;
+  if(!state.glitch.on||!gl.on)return buf;
+  const W=buf.width,H=buf.height,fx=gl.fx,e0=gl.amt/100,s=1;
+  // The glitch runs on a fixed grid of steps (one per `interval` ms of timeline) with its own seeded RNG per layer.
+  // Same timeline => same steps => same pixels, whether the frame is drawn by the live preview or by the exporter.
+  const interval=1000/(4+gl.spd*0.26),step=Math.floor(t/interval);
+  let S=L._gs;if(S&&step<S.step)S=L._gs=null;                         // timeline went backwards (loop / replay)
+  if(!S)S=L._gs={step:-1,rng:mulberry(seedFor(L.id)),fn:0,nextBurst:0,burstEnd:0,roll:0,bars:[],drops:null};
+  const sizeOk=S.out&&S.out.width===W&&S.out.height===H;
+  const frozen=!!(gl.pg&&gl.pg.st);                                  // FREEZE: hold the whole glitch pattern still while the picture/text underneath keeps playing
+  if(sizeOk&&S.step===step&&!frozen)return S.out;
+  const R=()=>S.rng();
+  const k0=frozen?step:S.step<0?Math.max(0,step-GLITCH_MAX_CATCHUP):(S.step===step?step:Math.max(S.step+1,step-GLITCH_MAX_CATCHUP));
+  for(let kk=k0;kk<=step;kk++){
+  const tk=kk*interval;
+  if(frozen){S.rng=mulberry(seedFor(L.id)^0x7F4A7C15);S.bars=[];S.roll=0;S.drops=null;S.fn=0;S.nextBurst=Infinity;S.burstEnd=Infinity;}   // same random choices every frame => static pattern
+  if(tk>=S.nextBurst){
+    S.burstEnd=tk+120+R()*(200+e0*500);
+    const f=gl.freq/100;
+    S.nextBurst=S.burstEnd+(f>=.99?0:(200+(1-f)*3500)*(.4+R()*1.2));
+  }
+  const inB=tk<S.burstEnd, e=e0*(inB?.45+R()*.55:.07);
+  const cvs=k=>{let c=S[k];if(!c||c.width!==W||c.height!==H)c=S[k]=mkCv(W,H);return c;};
+  const base=cvs('base'),out=cvs('out'),bx=base.getContext('2d');
+  bx.setTransform(1,0,0,1,0,0);bx.globalAlpha=1;bx.globalCompositeOperation='copy';bx.drawImage(buf,0,0);bx.globalCompositeOperation='source-over';
+  const pg=()=>{if(gl.pg.on.length)pxGlitch(bx,W,H,S.fn,gl.pg);};
+  if(gl.before)pg();
+  if(fx.slice||fx.rowshift||fx.block||fx.smear)applyGeomEffects(bx,base,W,H,s,e,inB,R,fx);
+  if(!gl.before)pg();
+  const o=out.getContext('2d');
+  o.setTransform(1,0,0,1,0,0);o.globalCompositeOperation='source-over';o.globalAlpha=1;o.filter='none';o.shadowBlur=0;o.clearRect(0,0,W,H);
+  let d=fx.rgb?e*18*s*(.4+R()*.6):0, dy=fx.rgb?(R()-.5)*e*4*s:0;
+  if(fx.hold){d=Math.max(d,(2+e0*9)*s*(.7+R()*.6));if(!dy)dy=(R()-.5)*e0*2*s;}
+  const ox=fx.wobble?(R()-.5)*e*24*s:0;
+  if(fx.roll&&inB){if(R()<.7)S.roll=(S.roll+(.03+R()*.12)*H*e0)%H;}else S.roll=0;
+  o.drawImage(base,ox,S.roll);if(S.roll)o.drawImage(base,ox,S.roll-H);
+  if(d>0.5){                                                       // RGB split: red / cyan ghosts around the picture
+    const gR=ghostCopy(S,'gR',base,'#ff2255',W,H),gC=ghostCopy(S,'gC',base,'#00e5ff',W,H);
+    o.globalCompositeOperation='lighter';o.globalAlpha=.55;
+    o.drawImage(gR,ox-d,S.roll+dy);o.drawImage(gC,ox+d,S.roll-dy);
+    o.globalAlpha=1;o.globalCompositeOperation='source-over';
+  }
+  if(fx.flick&&R()<.35){o.globalCompositeOperation='source-atop';o.fillStyle=`rgba(0,0,0,${e*.55*R()})`;o.fillRect(0,0,W,H);o.globalCompositeOperation='source-over';}
+  if(fx.noise&&G.nPat){
+    o.save();o.globalCompositeOperation='source-atop';o.globalAlpha=.06+e*.5;
+    const sc=1.5*s;o.translate(-Math.floor(R()*256*sc),-Math.floor(R()*256*sc));o.scale(sc,sc);
+    o.fillStyle=G.nPat;o.fillRect(0,0,W/sc+256,H/sc+256);o.restore();
+    if(inB){
+      const k=Math.floor(e*8*R());
+      o.globalCompositeOperation='lighter';o.globalAlpha=.5;o.fillStyle=state.ui.color;
+      for(let i=0;i<k;i++)o.fillRect(R()*W,R()*H,R()*W*.4,Math.max(1,s*(1+R()*2)));
+      o.globalCompositeOperation='source-over';o.globalAlpha=1;
+    }
+  }
+  if(fx.streak){
+    const ks=e0*(inB?.55+R()*.45:.3),n=Math.floor(ks*900*W*H/921600);
+    const PAL=gl.streakCol==='phos'?[state.ui.color,'#ffffff',state.ui.color,state.ui.color]:['#ff2255','#ff00aa','#3d5cff','#7a2cff','#00e5ff','#ff2255','#b8f0ff'];
+    o.globalCompositeOperation='lighter';
+    for(let c=0;c<PAL.length;c++){
+      o.fillStyle=PAL[c];
+      for(let i=0,m=Math.floor(n/PAL.length);i<m;i++){
+        const y=R()*H,len=(3+Math.pow(R(),2.5)*150)*s;
+        o.globalAlpha=.12+R()*.6;
+        o.fillRect(R()*W-len*.3,y,len,Math.max(1,Math.round(s*(R()<.15?2:1))));
+      }
+    }
+    o.globalAlpha=1;o.globalCompositeOperation='source-over';
+  }
+  if(fx.bars){
+    if(S.bars.length<4&&R()<(inB?.35:.08)*(.4+e0)){
+      const len=W*(.1+R()*.3),left=R()<.5;
+      S.bars.push({x:left?0:W-len,y:R()*H,len,ttl:3+Math.floor(R()*10),h:Math.max(2,s*(2+R()*3)),c:R()<.7?'#00e5ff':'#ff2255'});
+    }
+    S.bars=S.bars.filter(b=>b.ttl-->0);
+    o.globalCompositeOperation='lighter';
+    S.bars.forEach(b=>{o.shadowColor=b.c;o.shadowBlur=12*s;o.globalAlpha=.55+R()*.4;o.fillStyle=b.c;o.fillRect(b.x,b.y+(R()-.5)*s,b.len,b.h);});
+    o.shadowBlur=0;o.shadowColor='transparent';o.globalAlpha=1;o.globalCompositeOperation='source-over';
+  }
+  if(fx.rain)glitchRain(o,W,H,s,R,S);
+  S.fn++;S.step=kk;
+  }
+  return S.out;
+}
+function glitchRain(v,W,H,s,R,S){
+  const cw=Math.round(14*s),n=Math.floor(W/cw);
+  const CH='ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿ0123456789ABCDEF';
+  if(!S.drops||S.drops.length!==n)S.drops=Array.from({length:n},()=>({on:R()<.35,y:R()*H,v:cw*(.5+R()*1.2),l:6+Math.floor(R()*16)}));
+  v.globalCompositeOperation='lighter';v.font=`${cw}px ${MONO}`;v.textBaseline='top';
+  S.drops.forEach((d,i)=>{
+    if(!d.on){if(R()<.02)d.on=true;return;}
+    d.y+=d.v;
+    if(d.y-d.l*cw>H){d.y=-R()*H*.3;d.v=cw*(.5+R()*1.2);d.on=R()<.8;return;}
+    for(let k=0;k<d.l;k++){v.globalAlpha=(1-k/d.l)*.8;v.fillStyle=k?state.ui.color:'#fff';v.fillText(CH[Math.floor(R()*CH.length)],i*cw,d.y-k*cw);}
+  });
+  v.globalAlpha=1;v.globalCompositeOperation='source-over';
+}
+const layerFrame=(L,W,H,t)=>glitchBuffer(L,renderLayerToBuffer(L,W,H,t),t);
+
+// ═══════════════════════════════════════════════════════════════════
+// CODECS — WebM muxer, GIF, APNG, ZIP
+// ═══════════════════════════════════════════════════════════════════
+function concatU8(...arrs){
+  const total=arrs.reduce((a,b)=>a+b.length,0);
+  const out=new Uint8Array(total);let off=0;
+  for(const a of arrs){out.set(a,off);off+=a.length;}
+  return out;
+}
+function ebmlID(id){
+  const bytes=[];let v=id;
+  while(v>0){bytes.unshift(v&0xFF);v=Math.floor(v/256);}
+  return new Uint8Array(bytes);
+}
+function ebmlVint(n){
+  let len=1;
+  while(len<8 && n >= Math.pow(2,7*len)-1) len++;
+  const out=new Uint8Array(len);
+  out[0]=1<<(8-len);
+  for(let i=len-1;i>=0;i--){out[i]|=n&0xFF;n=Math.floor(n/256);}
+  return out;
+}
+function ebmlSize(n){return ebmlVint(n);}
+function ebmlUint(n){
+  if(n===0)return new Uint8Array([0]);
+  const bytes=[];while(n>0){bytes.unshift(n&0xFF);n=Math.floor(n/256);}
+  return new Uint8Array(bytes);
+}
+function ebmlFloat(n){
+  const b=new Uint8Array(8);new DataView(b.buffer).setFloat64(0,n);return b;
+}
+function ebmlStr(s){return new TextEncoder().encode(s);}
+function ebmlElement(id,data){
+  const idB=ebmlID(id);
+  const sizeB=ebmlSize(data.length);
+  return concatU8(idB,sizeB,data);
+}
+
+class WebMMuxer{
+  constructor({width,height,fps=30,codec='V_VP9'}){
+    this.width=width;this.height=height;this.fps=fps;this.codecId=codec;
+    this.trackId=1;this.clusters=[];this.currentCluster=null;
+    this.durationMs=0;
+  }
+  addVideoChunk(chunk){
+    const tsMs=Math.round(chunk.timestamp/1000);
+    this.durationMs=Math.max(this.durationMs,tsMs);
+    const data=new Uint8Array(chunk.byteLength);
+    chunk.copyTo(data);
+    const keyframe=chunk.type==='key';
+    if(!this.currentCluster || (tsMs-this.currentCluster.timecode)>1000 || keyframe){
+      this.currentCluster={timecode:tsMs,blocks:[]};
+      this.clusters.push(this.currentCluster);
+    }
+    this.currentCluster.blocks.push({relTime:tsMs-this.currentCluster.timecode,data,keyframe});
+  }
+  finalize(){
+    const ebmlHeader=ebmlElement(0x1A45DFA3,concatU8(
+      ebmlElement(0x4286,ebmlUint(1)),
+      ebmlElement(0x42F7,ebmlUint(1)),
+      ebmlElement(0x42F2,ebmlUint(4)),
+      ebmlElement(0x42F3,ebmlUint(8)),
+      ebmlElement(0x4282,ebmlStr('webm')),
+      ebmlElement(0x4287,ebmlUint(2)),
+      ebmlElement(0x4285,ebmlUint(2)),
+    ));
+    const info=ebmlElement(0x1549A966,concatU8(
+      ebmlElement(0x2AD7B1,ebmlUint(1000000)),
+      ebmlElement(0x4489,ebmlFloat(this.durationMs)),
+      ebmlElement(0x4D80,ebmlStr('glyph-conv')),
+      ebmlElement(0x5741,ebmlStr('glyph-conv')),
+    ));
+    const track=ebmlElement(0xAE,concatU8(
+      ebmlElement(0xD7,ebmlUint(this.trackId)),
+      ebmlElement(0x73C5,ebmlUint(this.trackId)),
+      ebmlElement(0x83,ebmlUint(1)),
+      ebmlElement(0x86,ebmlStr(this.codecId)),
+      ebmlElement(0xE0,concatU8(
+        ebmlElement(0xB0,ebmlUint(this.width)),
+        ebmlElement(0xBA,ebmlUint(this.height)),
+      )),
+    ));
+    const tracks=ebmlElement(0x1654AE6B,track);
+    const clusterEls=this.clusters.map(cl=>{
+      const blocks=cl.blocks.map(b=>{
+        const trackVint=ebmlVint(this.trackId);
+        const header=new Uint8Array(trackVint.length+3);
+        header.set(trackVint,0);
+        new DataView(header.buffer).setInt16(trackVint.length,b.relTime);
+        header[trackVint.length+2]=b.keyframe?0x80:0x00;
+        return ebmlElement(0xA3,concatU8(header,b.data));
+      });
+      return ebmlElement(0x1F43B675,concatU8(ebmlElement(0xE7,ebmlUint(cl.timecode)),...blocks));
+    });
+    const segment=ebmlElement(0x18538067,concatU8(info,tracks,...clusterEls));
+    return new Blob([concatU8(ebmlHeader,segment)],{type:'video/webm'});
+  }
+}
+
+// GIF
+function gifEncode(frames,w,h,delay,pal,bits,tol){
+  bits=bits||8;tol=tol||0;
+  const o=[],w16=n=>o.push(n&255,n>>8&255),CL=1<<bits,tIdx=CL-1,mc=bits,T2=tol*tol;
+  o.push(71,73,70,56,57,97);w16(w);w16(h);o.push(0xF0|(bits-1),0,0);
+  for(let i=0;i<3*CL;i++)o.push(pal[i]);
+  o.push(33,255,11);for(const ch of 'NETSCAPE2.0')o.push(ch.charCodeAt(0));o.push(3,1,0,0,0);
+  let disp=null;
+  frames.forEach((px,k)=>{
+    let x0=0,y0=0,fw=w,fh=h,data=px,tr=0;
+    if(k===0)disp=Uint8Array.from(px);
+    else{
+      const out=new Uint8Array(w*h);let minX=w,minY=h,maxX=-1,maxY=-1;
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+        const p=y*w+x,i=px[p],d=disp[p];let same=i===d;
+        if(!same&&T2>0){const a=i*3,c=d*3,dr=pal[a]-pal[c],dg=pal[a+1]-pal[c+1],db=pal[a+2]-pal[c+2];same=dr*dr+dg*dg+db*db<=T2;}
+        if(same)out[p]=tIdx;
+        else{out[p]=i;disp[p]=i;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+      }
+      tr=1;
+      if(maxX<0){fw=1;fh=1;data=new Uint8Array([tIdx]);}
+      else{
+        x0=minX;y0=minY;fw=maxX-minX+1;fh=maxY-minY+1;data=new Uint8Array(fw*fh);
+        for(let y=0;y<fh;y++)data.set(out.subarray((y0+y)*w+x0,(y0+y)*w+x0+fw),y*fw);
+      }
+    }
+    o.push(33,249,4,tr?5:4);w16(delay);o.push(tr?tIdx:0,0,44);w16(x0);w16(y0);w16(fw);w16(fh);o.push(0,mc);
+    const CC=1<<mc,EOI=CC+1;
+    let dict=new Map(),next=CC+2,size=mc+1,cur=0,nb=0;const buf=[];
+    const emit=c=>{cur|=c<<nb;nb+=size;while(nb>=8){buf.push(cur&255);cur>>=8;nb-=8;}};
+    emit(CC);let p=data[0];
+    for(let i=1;i<data.length;i++){
+      const c=data[i],key=p<<8|c,v=dict.get(key);
+      if(v!==undefined){p=v;continue;}
+      emit(p);
+      if(next===4096){emit(CC);dict=new Map();next=CC+2;size=mc+1;}
+      else{if(next>=(1<<size))size++;dict.set(key,next++);}
+      p=c;
+    }
+    emit(p);emit(EOI);if(nb>0)buf.push(cur&255);
+    for(let i=0;i<buf.length;i+=255){const n=Math.min(255,buf.length-i);o.push(n);for(let j=0;j<n;j++)o.push(buf[i+j]);}
+    o.push(0);
+  });
+  o.push(59);return new Uint8Array(o);
+}
+
+// CRC32 (for PNG/ZIP)
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRC[(c^u8[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+
+// APNG
+async function deflateZ(u8){
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+}
+function pngChunk(type,data){
+  const o=new Uint8Array(12+data.length),dv=new DataView(o.buffer);
+  dv.setUint32(0,data.length);for(let i=0;i<4;i++)o[4+i]=type.charCodeAt(i);
+  o.set(data,8);dv.setUint32(8+data.length,crc32(o.subarray(4,8+data.length)));return o;
+}
+async function apngEncode(frames,w,h,delayMs){
+  const parts=[new Uint8Array([137,80,78,71,13,10,26,10])],rb=w*4+1;
+  const ih=new Uint8Array(13),iv=new DataView(ih.buffer);iv.setUint32(0,w);iv.setUint32(4,h);ih[8]=8;ih[9]=6;
+  parts.push(pngChunk('IHDR',ih));
+  const ac=new Uint8Array(8),av=new DataView(ac.buffer);av.setUint32(0,frames.length);av.setUint32(4,0);
+  parts.push(pngChunk('acTL',ac));
+  let seq=0;
+  for(let i=0;i<frames.length;i++){
+    const fc=new Uint8Array(26),fv=new DataView(fc.buffer);
+    fv.setUint32(0,seq++);fv.setUint32(4,w);fv.setUint32(8,h);fv.setUint32(12,0);fv.setUint32(16,0);
+    fv.setUint16(20,Math.max(1,Math.round(delayMs)));fv.setUint16(22,1000);fc[24]=0;fc[25]=0;
+    parts.push(pngChunk('fcTL',fc));
+    const raw=new Uint8Array(rb*h);
+    for(let y=0;y<h;y++)raw.set(frames[i].subarray(y*w*4,(y+1)*w*4),y*rb+1);
+    const z=await deflateZ(raw);
+    if(i===0)parts.push(pngChunk('IDAT',z));
+    else{const d=new Uint8Array(4+z.length);new DataView(d.buffer).setUint32(0,seq++);d.set(z,4);parts.push(pngChunk('fdAT',d));}
+  }
+  parts.push(pngChunk('IEND',new Uint8Array(0)));
+  return new Blob(parts,{type:'image/png'});
+}
+
+// ZIP
+function zipStore(files){
+  const enc=new TextEncoder(),loc=[],cen=[];let off=0;
+  files.forEach(f=>{
+    const nm=enc.encode(f.name),crc=crc32(f.data),len=f.data.length;
+    const h=new Uint8Array(30+nm.length),dv=new DataView(h.buffer);
+    dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0x0800,true);dv.setUint16(8,0,true);
+    dv.setUint16(10,0,true);dv.setUint16(12,0x21,true);dv.setUint32(14,crc,true);dv.setUint32(18,len,true);
+    dv.setUint32(22,len,true);dv.setUint16(26,nm.length,true);dv.setUint16(28,0,true);h.set(nm,30);
+    const c=new Uint8Array(46+nm.length),cv=new DataView(c.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(8,0x0800,true);
+    cv.setUint16(10,0,true);cv.setUint16(12,0,true);cv.setUint16(14,0x21,true);cv.setUint32(16,crc,true);
+    cv.setUint32(20,len,true);cv.setUint32(24,len,true);cv.setUint16(28,nm.length,true);cv.setUint32(42,off,true);c.set(nm,46);
+    loc.push(h,f.data);cen.push(c);off+=h.length+len;
+  });
+  const cs=cen.reduce((x,y)=>x+y.length,0),e=new Uint8Array(22),ev=new DataView(e.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cs,true);ev.setUint32(16,off,true);
+  return new Blob([...loc,...cen,e],{type:'application/zip'});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER LOOP
+// ═══════════════════════════════════════════════════════════════════
+// TIMELINE — one clock for everything animated. The preview plays it, the exporter samples it offline;
+// both reset from the same start, so a frame at time t is identical in either place.
+let TL=0, _lastNow=performance.now();
+const syncOn=()=>{const e=$('syncPrev');return !e||e.checked;};
+function exportTiming(){
+  const fmt=$('animFmt').value;let fps=exportFps(),dt=1000/fps,N;
+  if(fmt==='webm')N=Math.max(2,Math.round(+$('vidSecs').value*fps));
+  else{N=+$('gifFrames').value;if(fmt==='gif'){dt=Math.max(20,Math.round(dt/10)*10);fps=1000/dt;}}   // GIF delays are whole centiseconds: sample on that grid so playback speed matches
+  return {fmt,fps,dt,N,D:N*dt};
+}
+// keepCur: this moment becomes the loop's starting image; false: go back to the starting image
+function resetTimeline(keepCur=true,forExport=false){
+  const r=state.roll;
+  if(keepCur)r.startCur=r.cur;else r.cur=r.startCur||0;
+  r.transition=null;r.intr=0;
+  r.nextSwap=(forExport||syncOn())?-1:0;           // -1: first swap lands at the export "TRIGGER SWAP AT" point
+  r.rng=mulberry(ROLL_SEED);
+  TL=0;
+  state.layers.forEach(L=>{L._gs=null;});
+}
+function replayAnim(){resetTimeline(true);}
+function rollStep(t){
+  const rl=rollLayers();
+  if(rl.length>1 && !state.roll.transition){
+    if(state.roll.nextSwap<=0){
+      state.roll.nextSwap=t+(state.roll.nextSwap<0?exportTiming().D*(+$('exSwapAt').value)/100:rollHold(rl));
+    }
+    if(state.roll.on!==false && t>=state.roll.nextSwap){
+      if(PASSIVE_STYLES.has(state.roll.style)){state.roll.intr=(state.roll.intr||0)+1;state.roll.nextSwap=t+rollHold(rl);}   // a different image leaks in
+      else startRollTransition(t,t);
+    }
+  }
+  if(state.roll.transition){
+    const tr=state.roll.transition;
+    if(t>=tr.t0+tr.dur){
+      if(!tr.keep)state.roll.cur=(state.roll.cur+1)%rl.length;     // peek / hold / subliminal: image 1 comes back
+      state.roll.transition=null;
+      state.roll.nextSwap=t+rollHold(rl);
+      setStatus('SHOWING IMAGE '+(state.roll.cur+1)+' OF '+rl.length);
+    }
+  }
+}
+let _lastDimSig='';
+
+function tick(){
+  requestAnimationFrame(tick);
+  const now=performance.now(),dReal=now-_lastNow;_lastNow=now;
+  if(state._exporting)return;                               // export owns the canvas and timeline
+  G.last=now;
+  if(!state.layers.length){ctx.clearRect(0,0,cv.width,cv.height);return;}
+  TL+=Math.min(dReal,TL_MAX_DT);                            // lag slows the timeline instead of skipping steps
+  if(syncOn()&&TL>=exportTiming().D)resetTimeline(false);   // loop = exactly what the export contains
+  const t=TL;
+
+  updateThumbLive();
+  rollStep(t);
+  composeFrame(t);
+
+  // dim info
+  const sig=cv.width+'x'+cv.height;
+  if(sig!==_lastDimSig){_lastDimSig=sig;dimInfo.textContent=sig;}
+}
+
+function rollHold(rl){const L=rl[state.roll.cur%rl.length];return((L&&L.trans&&L.trans.hold>0)?L.trans.hold:state.roll.every)*1000;}
+function startRollTransition(now,t0){
+  const rl=rollLayers();
+  if(rl.length<2)return;
+  const curIdx=state.roll.cur%rl.length;
+  const cur=rl[curIdx];
+  const next=rl[(curIdx+1)%rl.length];
+  fixLayer(next);const T=next.trans;                       // the layer being transitioned INTO decides how
+  if(PASSIVE_STYLES.has(T.style||state.roll.style)){state.roll.intr=(state.roll.intr||0)+1;return;}   // intrusion styles have no transition
+  state.roll.transition={fromId:cur.id,toId:next.id,t0:t0!=null?t0:TL,
+    dur:0,style:T.style||state.roll.style};
+  const tr=state.roll.transition,temp=TEMP_STYLES.has(tr.style);
+  tr.keep=temp;
+  tr.dur=T.dur>0?T.dur:(!temp&&state.roll.dur>0?state.roll.dur:autoDur(tr.style,state.roll.rng));
+  setStatus('TRANSITION → '+(curIdx+1)%rl.length+' / '+rl.length);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI — LAYER LIST + PROPS
+// ═══════════════════════════════════════════════════════════════════
+// selecting a layer makes it the SUBJECT: it becomes the edit target and, if it is in the roll, the image on screen
+function selectLayer(i){
+  const L=state.layers[i];if(!L)return;
+  state.selected=i;
+  if(L.type==='image'&&L.inRoll&&L.visible){
+    const k=rollLayers().indexOf(L);
+    if(k>=0){state.roll.cur=k;resetTimeline(true);}
+  }
+  renderLayerList();renderLayerProps();updateInRollToggle();
+}
+// small static previews, top-right of the output
+const _thumbCache=new Map();
+function thumbURL(L){
+  const key=L.type==='image'?'i'+imgKey(L._img):'t'+L.content+'|'+L.color;
+  const e=_thumbCache.get(L.id);if(e&&e.key===key)return e.url;
+  const TW=64,TH=48,c=document.createElement('canvas'),x=c.getContext('2d');let url='';
+  if(L.type==='image'&&L._img){
+    const iw=L._img.naturalWidth||L._img.width,ih=L._img.naturalHeight||L._img.height,sc=Math.min(TW/iw,TH/ih);
+    c.width=Math.max(1,Math.round(iw*sc));c.height=Math.max(1,Math.round(ih*sc));
+    x.drawImage(L._img,0,0,c.width,c.height);url=c.toDataURL('image/jpeg',.7);
+  } else {
+    c.width=TW;c.height=TH;x.fillStyle='#040400';x.fillRect(0,0,TW,TH);
+    x.fillStyle=L.color||'#39ff14';x.font=`18px ${MONO}`;x.textAlign='center';x.textBaseline='middle';
+    x.fillText(String(L.content||'T').split('\n')[0].slice(0,6),TW/2,TH/2-3);url=c.toDataURL();
+  }
+  _thumbCache.set(L.id,{key,url});return url;
+}
+let _liveId='';
+function renderThumbs(){
+  const box=$('thumbStrip');box.innerHTML='';
+  state.layers.forEach((L,i)=>{
+    const d=document.createElement('div');
+    d.className='thumb'+(i===state.selected?' sel':'')+(L.visible?'':' off');
+    d.dataset.id=L.id;d.title=`${L.name} (${L.type})`;
+    d.innerHTML=`<img src="${thumbURL(L)}" alt=""><span class="tn">${i+1} ${L.name}</span><i></i>`;
+    d.onclick=()=>selectLayer(i);
+    box.appendChild(d);
+  });
+  _liveId='';updateThumbLive();
+}
+function updateThumbLive(){
+  const rl=rollLayers(),live=rl.length>1?String(rl[state.roll.cur%rl.length].id):'';
+  if(live===_liveId)return;_liveId=live;
+  document.querySelectorAll('#thumbStrip .thumb').forEach(t=>t.classList.toggle('live',t.dataset.id===live));
+}
+document.querySelectorAll('#viewSel .abtn').forEach(b=>b.onclick=()=>{
+  VIEW_MODE=b.dataset.v;
+  document.querySelectorAll('#viewSel .abtn').forEach(x=>x.classList.toggle('pri',x===b));
+  setStatus(VIEW_MODE==='solo'?'VIEW: SELECTED LAYER ONLY':'VIEW: COMBINED OUTPUT');
+});
+function renderLayerList(){
+  const box=$('layerList');box.innerHTML='';
+  state.layers.forEach((L,i)=>{
+    const el=document.createElement('div');
+    el.className='layer'+(i===state.selected?' sel':'')+(L._broken?' broken':'');
+    el.innerHTML=`<span class="eye${L.visible?' on':''}">${L.visible?'◉':'○'}</span>
+      <span class="nm">${L._broken?'⚠ ':''}${L.name}${L.inRoll?' ⇄':''}</span>
+      <span class="tp">${L.type.slice(0,3).toUpperCase()}</span>`;
+    el.querySelector('.eye').onclick=e=>{e.stopPropagation();L.visible=!L.visible;renderLayerList();};
+    el.onclick=()=>selectLayer(i);
+    box.appendChild(el);
+  });
+  updateInRollToggle();
+  renderThumbs();
+}
+function updateInRollToggle(){
+  const L=selLayer(),t=$('tInRoll');
+  if(!L){t.dataset.on='0';t.classList.remove('on');return;}
+  const on=L.inRoll?'1':'0';
+  t.dataset.on=on;t.classList.toggle('on',on==='1');
+}
+function syncModeBtns(){
+  const L=selLayer(),img=L&&L.type==='image';
+  $('btnModeGlyph').classList.toggle('active',!!img&&L.mode==='glyph');
+  $('btnModePixel').classList.toggle('active',!!img&&L.mode==='pixel');
+  $('btnModeImage').classList.toggle('active',!!img&&L.mode==='image');
+  $('btnModeGlyph').style.opacity=$('btnModePixel').style.opacity=$('btnModeImage').style.opacity=img?'':'.25';
+}
+function setLayerMode(m,all){
+  const tgt=all?state.layers.filter(l=>l.type==='image'):[selLayer()].filter(l=>l&&l.type==='image');
+  if(!tgt.length){setStatus('SELECT AN IMAGE LAYER FIRST');return;}
+  tgt.forEach(l=>l.mode=m);
+  renderLayerProps();setStatus((all?'ALL IMAGE LAYERS':'LAYER')+' → '+(m==='pixel'?'PIXEL ART':m==='image'?'PLAIN IMAGE':'ASCII'));
+}
+$('btnModeGlyph').onclick=e=>setLayerMode('glyph',e.shiftKey);
+$('btnModePixel').onclick=e=>setLayerMode('pixel',e.shiftKey);
+$('btnModeImage').onclick=e=>setLayerMode('image',e.shiftKey);
+function renderLayerProps(){
+  const box=$('layerProps');box.innerHTML='';
+  const L=selLayer();
+  syncModeBtns();syncGlitchUI();
+  if(!L){box.innerHTML='<span class="slabel">NO LAYER SELECTED</span>';return;}
+  const label=(s)=>{const e=document.createElement('span');e.className='slabel';e.textContent=':: '+s;box.appendChild(e);};
+  const row=(lbl,html)=>{const d=document.createElement('div');d.className='ctrl';d.innerHTML=`<div class="ch">${lbl}</div>${html}`;box.appendChild(d);return d;};
+  const tog=(lbl,val,cb)=>{const d=document.createElement('div');d.className='tr';d.innerHTML=`<span class="tl">${lbl}</span><div class="tog${val?' on':''}"></div>`;d.querySelector('.tog').onclick=cb;box.appendChild(d);};
+  const nameRow=row('NAME',`<input type="text" value="${L.name.replace(/"/g,'&quot;')}">`);
+  nameRow.querySelector('input').oninput=e=>{L.name=e.target.value;renderLayerList();};
+
+  label(L.name);
+
+  // Transform + blend
+  const opRow=row(`OPACITY <span>${Math.round(L.opacity*100)}%</span>`,`<input type="range" min="0" max="100" value="${Math.round(L.opacity*100)}">`);
+  opRow.querySelector('input').oninput=e=>{L.opacity=+e.target.value/100;opRow.querySelector('span').textContent=e.target.value+'%';};
+  const bl=row('BLEND',`<select>
+    <option value="source-over">NORMAL</option><option value="lighter">ADD</option>
+    <option value="screen">SCREEN</option><option value="multiply">MULTIPLY</option>
+    <option value="overlay">OVERLAY</option><option value="difference">DIFFERENCE</option>
+  </select>`);
+  bl.querySelector('select').value=L.blend;
+  bl.querySelector('select').onchange=e=>L.blend=e.target.value;
+
+  // Type-specific
+  if(L.type==='image'){
+    const md=row('MODE',`<select><option value="glyph">GLYPH</option><option value="pixel">PIXEL</option><option value="image">IMAGE (plain picture)</option></select>`);
+    md.querySelector('select').value=L.mode;
+    md.querySelector('select').onchange=e=>{L.mode=e.target.value;renderLayerProps();};
+
+    if(L.mode==='glyph'){
+      const g=L.glyphCfg;
+      const r1=row(`COLS <span>${g.cols}</span>`,`<input type="range" min="20" max="400" value="${g.cols}">`);
+      r1.querySelector('input').oninput=e=>{g.cols=+e.target.value;r1.querySelector('span').textContent=g.cols;};
+      const cs=row('CHARSET',`<select>${CHARSETS.map((c,i)=>`<option value="${i}">${CHARSET_NAMES[i]||('SET '+i)}</option>`).join('')}</select>`);
+      cs.querySelector('select').value=g.charset;
+      cs.querySelector('select').onchange=e=>g.charset=+e.target.value;
+      const col=row('COLOR',`<div class="cbtn-grid">${colorBtns(g.color)}</div>`);
+      col.querySelectorAll('.cbtn').forEach(b=>b.onclick=()=>{g.color=b.dataset.c;renderLayerProps();});
+      const gl=row(`GLOW <span>${g.glow}</span>`,`<input type="range" min="0" max="30" value="${g.glow}">`);
+      gl.querySelector('input').oninput=e=>{g.glow=+e.target.value;gl.querySelector('span').textContent=g.glow;};
+      const sp=row(`SPREAD <span>${g.spread.toFixed(1)}</span>`,`<input type="range" min="0" max="40" value="${Math.round(g.spread*10)}">`);
+      sp.querySelector('input').oninput=e=>{g.spread=+e.target.value/10;sp.querySelector('span').textContent=g.spread.toFixed(1);};
+      const ct=row(`CONTRAST <span>${(g.contrast/10).toFixed(1)}</span>`,`<input type="range" min="1" max="60" value="${g.contrast}">`);
+      ct.querySelector('input').oninput=e=>{g.contrast=+e.target.value;ct.querySelector('span').textContent=(g.contrast/10).toFixed(1);};
+      const br=row(`BRIGHT <span>${g.brightness}</span>`,`<input type="range" min="-100" max="100" value="${g.brightness}">`);
+      br.querySelector('input').oninput=e=>{g.brightness=+e.target.value;br.querySelector('span').textContent=g.brightness;};
+      tog('COLOR FROM IMAGE',g.colorFromImage,()=>{g.colorFromImage=g.colorFromImage?0:1;renderLayerProps();});
+      tog('EDGE DETECT',g.edge,()=>{g.edge=g.edge?0:1;renderLayerProps();});
+      tog('DITHER',g.dither,()=>{g.dither=g.dither?0:1;renderLayerProps();});
+      tog('INVERT',g.invert,()=>{g.invert=g.invert?0:1;renderLayerProps();});
+      tog('MIRROR',g.mirror,()=>{g.mirror=g.mirror?0:1;renderLayerProps();});
+    } else if(L.mode==='pixel'){
+      const p=L.pixelCfg;
+      const r1=row(`BLOCK <span>${p.block}px</span>`,`<input type="range" min="2" max="64" value="${p.block}">`);
+      r1.querySelector('input').oninput=e=>{p.block=+e.target.value;r1.querySelector('span').textContent=p.block+'px';};
+      const pl=row('PALETTE',`<select><option value="full">FULL COLOR</option><option value="auto32">AUTO 32</option><option value="auto16">AUTO 16</option><option value="auto8">AUTO 8</option><option value="auto4">AUTO 4</option><option value="gameboy">GAME BOY</option><option value="mono">MONO 6-STEP</option><option value="crt">CRT GREEN</option><option value="amber">AMBER</option><option value="nes">NES</option><option value="c64">C64</option><option value="pico8">PICO-8</option><option value="cga">CGA</option><option value="vboy">VIRTUAL BOY</option><option value="vapor">VAPORWAVE</option><option value="cyber">CYBER BLUE</option><option value="sepia">SEPIA</option><option value="ice">ICE</option></select>`);
+      const pc=row(`CONTRAST <span>${(p.contrast/10).toFixed(1)}</span>`,`<input type="range" min="1" max="40" value="${p.contrast}">`);
+      pc.querySelector('input').oninput=e=>{p.contrast=+e.target.value;pc.querySelector('span').textContent=(p.contrast/10).toFixed(1);};
+      const pb=row(`BRIGHTNESS <span>${p.brightness}</span>`,`<input type="range" min="-100" max="100" value="${p.brightness}">`);
+      pb.querySelector('input').oninput=e=>{p.brightness=+e.target.value;pb.querySelector('span').textContent=p.brightness;};
+      const ps=row(`SATURATION <span>${(p.sat/10).toFixed(1)}</span>`,`<input type="range" min="0" max="30" value="${p.sat}">`);
+      ps.querySelector('input').oninput=e=>{p.sat=+e.target.value;ps.querySelector('span').textContent=(p.sat/10).toFixed(1);};
+      pl.querySelector('select').value=p.palette;
+      pl.querySelector('select').onchange=e=>p.palette=e.target.value;
+      tog('DITHER',p.dither,()=>{p.dither=p.dither?0:1;renderLayerProps();});
+      tog('OUTLINE',p.edge,()=>{p.edge=p.edge?0:1;renderLayerProps();});
+      tog('GRID',p.grid,()=>{p.grid=p.grid?0:1;renderLayerProps();});
+      tog('SCANLINES',p.scan,()=>{p.scan=p.scan?0:1;renderLayerProps();});
+      tog('NOISE',p.noise,()=>{p.noise=p.noise?0:1;renderLayerProps();});
+      tog('HARD LIGHT',L.light.on,()=>{L.light.on=!L.light.on;renderLayerProps();});
+      if(L.light.on){
+        const pk=row('',`<button class="abtn" style="width:100%">▶ PIXEL STENCIL (stencil preset)</button>`);
+        pk.querySelector('button').onclick=()=>{Object.assign(L.light,LIGHT_PRESETS.stencil,{on:true});renderLayerProps();setStatus('PIXEL STENCIL APPLIED');};
+        row('','<div class="hint">In PIXEL mode HARD LIGHT works on the pixel grid itself: each block becomes one flat tone (shadow black / a few greys), then the PALETTE is applied. Tune the sliders in the HARD LIGHT section below.</div>');
+      }
+    } else {
+      row('','<div class="hint">Plain picture, no glyphs or pixels. Use HARD LIGHT below for the crushed-shadow look.</div>');
+    }
+  } else if(L.type==='text'){
+    const ta=row('TEXT',`<textarea>${L.content.replace(/</g,'&lt;')}</textarea>`);
+    ta.querySelector('textarea').oninput=e=>L.content=e.target.value;
+    const sz=row(`SIZE <span>${L.size}px</span>`,`<input type="range" min="8" max="200" value="${L.size}">`);
+    sz.querySelector('input').oninput=e=>{L.size=+e.target.value;sz.querySelector('span').textContent=L.size+'px';};
+    const xr=row(`X <span>${Math.round(L.x*100)}%</span>`,`<input type="range" min="0" max="100" value="${Math.round(L.x*100)}">`);
+    xr.querySelector('input').oninput=e=>{L.x=+e.target.value/100;xr.querySelector('span').textContent=e.target.value+'%';};
+    const yr=row(`Y <span>${Math.round(L.y*100)}%</span>`,`<input type="range" min="0" max="100" value="${Math.round(L.y*100)}">`);
+    yr.querySelector('input').oninput=e=>{L.y=+e.target.value/100;yr.querySelector('span').textContent=e.target.value+'%';};
+    const al=row('ALIGN',`<select><option value="left">LEFT</option><option value="center">CENTER</option><option value="right">RIGHT</option></select>`);
+    al.querySelector('select').value=L.align;al.querySelector('select').onchange=e=>L.align=e.target.value;
+    const gw=row(`GLOW <span>${L.glow==null?10:L.glow}</span>`,`<input type="range" min="0" max="40" value="${L.glow==null?10:L.glow}">`);
+    gw.querySelector('input').oninput=e=>{L.glow=+e.target.value;gw.querySelector('span').textContent=L.glow;};
+    const tk=row(`LETTER SPACING <span>${L.track||0}px</span>`,`<input type="range" min="-6" max="60" value="${L.track||0}">`);
+    tk.querySelector('input').oninput=e=>{L.track=+e.target.value;tk.querySelector('span').textContent=L.track+'px';};
+    const col=row('COLOR',`<div class="cbtn-grid">${colorBtns(L.color)}</div>`);
+    col.querySelectorAll('.cbtn').forEach(b=>b.onclick=()=>{L.color=b.dataset.c;renderLayerProps();});
+
+    label('ANIMATION');
+    L.anim=normAnim(L.anim);const A=L.anim;
+    const rp=()=>{replayAnim();};                                  // every tweak restarts the preview
+    const ak=row('EFFECT',`<select>
+      <option value="none">NONE (static)</option><option value="fade">FADE IN</option><option value="typewriter">TYPEWRITER</option>
+      <option value="decode">DECODE (scramble → text)</option><option value="scanreveal">SCAN REVEAL ↓</option><option value="wipe">WIPE →</option>
+      <option value="glitchin">GLITCH IN</option><option value="scatter">SCATTER</option><option value="slide">SLIDE UP</option>
+      <option value="zoom">ZOOM IN</option><option value="flicker">NEON FLICKER</option></select>`);
+    ak.querySelector('select').value=A.kind;
+    ak.querySelector('select').onchange=e=>{A.kind=e.target.value;renderLayerProps();rp();};
+    const un=row('REVEAL BY',`<select><option value="char">CHARACTER</option><option value="word">WORD</option><option value="line">LINE</option></select>`);
+    un.querySelector('select').value=A.unit;un.querySelector('select').onchange=e=>{A.unit=e.target.value;rp();};
+    const od=row('ORDER',`<select><option value="forward">FORWARD</option><option value="reverse">REVERSE</option><option value="center">CENTER OUT</option><option value="edges">EDGES IN</option><option value="random">RANDOM</option></select>`);
+    od.querySelector('select').value=A.order;od.querySelector('select').onchange=e=>{A.order=e.target.value;rp();};
+    if(A.kind!=='typewriter'&&A.kind!=='scanreveal'&&A.kind!=='wipe'&&A.kind!=='none'){
+      const sf=row(`SOFTNESS <span>${Math.round(A.soft*100)}%</span>`,`<input type="range" min="0" max="100" value="${Math.round(A.soft*100)}">`);
+      sf.querySelector('input').oninput=e=>{A.soft=+e.target.value/100;sf.querySelector('span').textContent=e.target.value+'%';rp();};
+    }
+    const perCh=()=>A.kind==='typewriter'?` · ${Math.round(A.dur/Math.max(1,L.content.replace(/\s/g,'').length))}ms/char`:'';
+    const du=row(`DURATION <span>${A.dur}ms${perCh()}</span>`,`<input type="range" min="200" max="20000" step="100" value="${A.dur}">`);
+    du.querySelector('input').oninput=e=>{A.dur=+e.target.value;du.querySelector('span').textContent=A.dur+'ms'+perCh();rp();};
+    const de=row(`START DELAY <span>${A.delay}ms</span>`,`<input type="range" min="0" max="5000" step="50" value="${A.delay}">`);
+    de.querySelector('input').oninput=e=>{A.delay=+e.target.value;de.querySelector('span').textContent=A.delay+'ms';rp();};
+    const ea=row('EASE',`<select><option value="linear">LINEAR</option><option value="in">EASE IN</option><option value="out">EASE OUT</option><option value="inout">IN-OUT</option></select>`);
+    ea.querySelector('select').value=A.ease;ea.querySelector('select').onchange=e=>{A.ease=e.target.value;rp();};
+    tog('LOOP  (in → hold → out → again)',A.loop,()=>{A.loop=!A.loop;renderLayerProps();rp();});
+    if(A.loop){
+      const ho=row(`HOLD (text stays) <span>${(A.hold/1000).toFixed(1)}s</span>`,`<input type="range" min="0" max="20000" step="100" value="${A.hold}">`);
+      ho.querySelector('input').oninput=e=>{A.hold=+e.target.value;ho.querySelector('span').textContent=(A.hold/1000).toFixed(1)+'s';rp();};
+      const ok=row('THEN',`<select><option value="reverse">PLAY OUT BACKWARDS (backspace)</option><option value="fade">FADE OUT</option><option value="cut">CUT TO NOTHING</option></select>`);
+      ok.querySelector('select').value=A.outKind;ok.querySelector('select').onchange=e=>{A.outKind=e.target.value;renderLayerProps();rp();};
+      if(A.outKind!=='cut'){
+        const odur=row(`OUT DURATION <span>${A.outDur}ms</span>`,`<input type="range" min="100" max="10000" step="100" value="${A.outDur}">`);
+        odur.querySelector('input').oninput=e=>{A.outDur=+e.target.value;odur.querySelector('span').textContent=A.outDur+'ms';rp();};
+      }
+      const gp=row(`EMPTY PAUSE <span>${(A.gap/1000).toFixed(1)}s</span>`,`<input type="range" min="0" max="8000" step="100" value="${A.gap}">`);
+      gp.querySelector('input').oninput=e=>{A.gap=+e.target.value;gp.querySelector('span').textContent=(A.gap/1000).toFixed(1)+'s';rp();};
+      const lp=row(`REPEATS <span>${A.loops||'∞'}</span>`,`<input type="range" min="0" max="20" value="${A.loops}">`);
+      lp.querySelector('input').oninput=e=>{A.loops=+e.target.value;lp.querySelector('span').textContent=A.loops||'∞';rp();};
+    }
+    if(A.kind==='typewriter'||A.kind==='decode'){
+      const cu=row('CURSOR',`<select><option value="off">OFF</option><option value="block">█ BLOCK</option><option value="bar">▏BAR</option><option value="under">_ UNDERLINE</option></select>`);
+      cu.querySelector('select').value=A.cursor;cu.querySelector('select').onchange=e=>{A.cursor=e.target.value;rp();};
+    }
+    const bt=row('',`<div class="seg"><button class="abtn">↻ REPLAY</button><button class="abtn">⤮ NEW RANDOM</button></div>`);
+    const bb=bt.querySelectorAll('button');
+    bb[0].onclick=rp;bb[1].onclick=()=>{A.seed=(Math.random()*1e6)|0;rp();};
+  }
+
+  if(L.type==='image'){
+    fixLayer(L);const Lt=L.light;
+    label('LIGHT (hard illumination)');
+    tog('HARD LIGHT',Lt.on,()=>{Lt.on=!Lt.on;renderLayerProps();});
+    if(Lt.on){
+      const sl=(name,key,min,max,unit='')=>{
+        const r=row(`${name} <span>${Lt[key]}${unit}</span>`,`<input type="range" min="${min}" max="${max}" value="${Lt[key]}">`);
+        r.querySelector('input').oninput=e=>{Lt[key]=+e.target.value;r.querySelector('span').textContent=Lt[key]+unit;};
+      };
+      sl('SHADOW CUT','black',0,95,'%');
+      sl('EDGE SOFTNESS','soft',0,50,'%');
+      sl('LIGHT TONES','tones',2,8);
+      sl('LIGHT CEILING','ceil',15,100,'%');
+      sl('SHADING IN LIGHT','shade',0,100,'%');
+      sl('DETAIL / TEXTURE','detail',0,100,'%');
+      sl('CLEAN EDGES','clean',0,100,'%');
+      sl('GRAIN','grain',0,100,'%');
+      const pr=row('PRESET',`<div class="seg"><button class="abtn">STENCIL</button><button class="abtn">TEXTURED</button><button class="abtn">DEEP</button></div>`);
+      const pb=pr.querySelectorAll('button');
+      ['stencil','textured','deep'].forEach((k,i)=>pb[i].onclick=()=>{Object.assign(Lt,LIGHT_PRESETS[k]);renderLayerProps();});
+      const rf=row('',`<button class="abtn" style="width:100%">▶ REFERENCE LOOK (plain image + stencil)</button>`);
+      rf.querySelector('button').onclick=()=>{Object.assign(Lt,LIGHT_PRESETS.stencil,{on:true});L.mode='image';renderLayerProps();setStatus('REFERENCE LOOK APPLIED');};
+      row('','<div class="hint">Shadows are crushed to black, lit areas are flattened to a capped grey with a few tones, and local contrast keeps panel lines and surface detail. It runs on the picture BEFORE glyph/pixel conversion; set MODE to IMAGE to see it plain.</div>');
+    }
+  }
+  if(L.type==='image'&&L.inRoll){
+    fixLayer(L);const T=L.trans;
+    label('TRANSITION (this layer)');
+    const ts=row('INTO THIS LAYER',`<select><option value="">GLOBAL DEFAULT</option>${[...$('rollStyle').options].filter(o=>!PASSIVE_STYLES.has(o.value)).map(o=>`<option value="${o.value}">${o.textContent}</option>`).join('')}</select>`);
+    ts.querySelector('select').value=T.style;ts.querySelector('select').onchange=e=>T.style=e.target.value;
+    const td=row(`LENGTH <span>${T.dur?T.dur+'ms':'DEFAULT'}</span>`,`<input type="range" min="0" max="3000" step="50" value="${T.dur}">`);
+    td.querySelector('input').oninput=e=>{T.dur=+e.target.value;td.querySelector('span').textContent=T.dur?T.dur+'ms':'DEFAULT';};
+    const th=row(`STAYS ON SCREEN <span>${T.hold?T.hold+'s':'DEFAULT'}</span>`,`<input type="range" min="0" max="30" value="${T.hold}">`);
+    th.querySelector('input').oninput=e=>{T.hold=+e.target.value;th.querySelector('span').textContent=T.hold?T.hold+'s':'DEFAULT';};
+    row('','<div class="hint">"Stays on Screen" overrides the global "Swap Every" timer for this layer. If empty (0), the global default is used.</div>');
+  }
+  label('EFFECTS (per-layer)');
+  const fx=L.effects;
+  const mkFxRow=(label2,key,min,max,step,mult=1,dec=0)=>{
+    const r=row(`${label2} <span>${(fx[key]*mult).toFixed(dec)}</span>`,`<input type="range" min="${min*mult}" max="${max*mult}" step="${step*mult}" value="${fx[key]*mult}">`);
+    r.querySelector('input').oninput=e=>{fx[key]=+e.target.value/mult;r.querySelector('span').textContent=(fx[key]*mult).toFixed(dec);};
+  };
+  mkFxRow('BLUR',      'blur',       0,20,0.5,1,1);
+  mkFxRow('BRIGHTNESS','brightness', 0,3,0.05,1,2);
+  mkFxRow('CONTRAST',  'contrast',   0,3,0.05,1,2);
+  mkFxRow('SATURATE',  'saturate',   0,3,0.05,1,2);
+  mkFxRow('HUE',       'hue',        0,360,1,1,0);
+  mkFxRow('SEPIA',     'sepia',      0,1,0.05,1,2);
+  mkFxRow('GRAYSCALE', 'grayscale',  0,1,0.05,1,2);
+  mkFxRow('INVERT',    'invert',     0,1,0.05,1,2);
+  mkFxRow('POSTERIZE', 'posterize',  0,16,1,1,0);
+  mkFxRow('THRESHOLD', 'threshold',  0,1,0.02,1,2);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LAYER OPERATIONS
+// ═══════════════════════════════════════════════════════════════════
+function addImageFromFile(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=ev=>{const i=new Image();i.onload=()=>{
+      const L=newImageLayer(i,file.name.replace(/\.[^.]+$/,''));
+      state.layers.push(L);
+      selectLayer(state.layers.length-1);
+      res(L);
+    };i.onerror=rej;i.src=ev.target.result;};
+    r.onerror=rej;r.readAsDataURL(file);
+  });
+}
+$('btnAddImg').onclick=()=>$('fileImg').click();
+$('fileImg').onchange=async e=>{
+  const files=[...e.target.files];
+  for(const f of files) if(f.type.startsWith('image/')) await addImageFromFile(f);
+  e.target.value='';
+};
+$('btnAddTxt').onclick=()=>{
+  state.layers.push(newTextLayer('HELLO'));
+  selectLayer(state.layers.length-1);
+};
+$('btnLayerDel').onclick=()=>{
+  if(state.layers.length<=0)return;
+  state.layers.splice(state.selected,1);
+  state.selected=Math.min(state.selected,state.layers.length-1);
+  renderLayerList();renderLayerProps();
+};
+$('btnLayerUp').onclick=()=>{
+  const i=state.selected;
+  if(i<=0)return;
+  [state.layers[i-1],state.layers[i]]=[state.layers[i],state.layers[i-1]];
+  state.selected=i-1;renderLayerList();renderLayerProps();
+};
+$('btnLayerDn').onclick=()=>{
+  const i=state.selected;
+  if(i<0||i>=state.layers.length-1)return;
+  [state.layers[i],state.layers[i+1]]=[state.layers[i+1],state.layers[i]];
+  state.selected=i+1;renderLayerList();renderLayerProps();
+};
+$('tInRoll').onclick=()=>{
+  const L=selLayer();if(!L||L.type!=='image')return;
+  L.inRoll=!L.inRoll;
+  updateInRollToggle();
+  renderLayerList();renderLayerProps();
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// GLITCH UI
+// ═══════════════════════════════════════════════════════════════════
+$('tGlitch').dataset.on=state.glitch.on?'1':'0';
+$('tGlitch').classList.toggle('on',state.glitch.on);
+$('tGlitch').onclick=()=>{
+  state.glitch.on=!state.glitch.on;
+  $('tGlitch').dataset.on=state.glitch.on?'1':'0';
+  $('tGlitch').classList.toggle('on',state.glitch.on);
+  setStatus(state.glitch.on?'GLITCH: LIVE':'GLITCH: OFF');
+};
+const GLm=()=>{const L=selLayer();if(!L)return null;fixLayer(L);return L.gl;};
+function syncGlitchUI(){
+  const L=selLayer(),g=GLm();
+  $('glLayerName').textContent=L?L.name:'(no layer selected)';
+  if(!g)return;
+  [['gAmt','gAmtVal','amt'],['gSpd','gSpdVal','spd'],['gFreq','gFreqVal','freq']].forEach(([id,out,k])=>{$(id).value=g[k];$(out).textContent=g[k];});
+  document.querySelectorAll('.tog[data-fx]').forEach(t=>{const v=g.fx[t.dataset.fx]?'1':'0';t.dataset.on=v;t.classList.toggle('on',v==='1');});
+  document.querySelectorAll('.tog[data-pg]').forEach(t=>{const v=g.pg.on.includes(t.dataset.pg)?'1':'0';t.dataset.on=v;t.classList.toggle('on',v==='1');});
+  $('tPgStatic').dataset.on=g.pg.st?'1':'0';$('tPgStatic').classList.toggle('on',!!g.pg.st);
+  $('pgAmt').value=g.pg.amt;$('pgAmtVal').textContent=g.pg.amt;$('pgSeed').value=g.pg.seed;$('pgSeedVal').textContent=g.pg.seed;
+  $('ordAfter').classList.toggle('pri',!g.before);$('ordBefore').classList.toggle('pri',!!g.before);
+  $('tLayerGl').dataset.on=g.on?'1':'0';$('tLayerGl').classList.toggle('on',!!g.on);
+  $('gStreakCol').value=g.streakCol||'analog';
+}
+$('tLayerGl').onclick=()=>{const g=GLm();if(!g)return;g.on=!g.on;syncGlitchUI();};
+[['gAmt','gAmtVal','amt'],['gSpd','gSpdVal','spd'],['gFreq','gFreqVal','freq']].forEach(([id,out,key])=>{
+  $(id).oninput=()=>{const g=GLm();if(!g)return;g[key]=+$(id).value;$(out).textContent=g[key];};
+});
+document.querySelectorAll('.tog[data-fx]').forEach(t=>t.onclick=()=>{const g=GLm();if(!g)return;g.fx[t.dataset.fx]=t.dataset.on==='1'?0:1;syncGlitchUI();});
+$('ordAfter').onclick=()=>{const g=GLm();if(g){g.before=false;syncGlitchUI();}};
+$('ordBefore').onclick=()=>{const g=GLm();if(g){g.before=true;syncGlitchUI();}};
+document.querySelectorAll('.tog[data-pg]').forEach(t=>t.onclick=()=>{
+  const g=GLm();if(!g)return;const k=t.dataset.pg;
+  g.pg.on=g.pg.on.includes(k)?g.pg.on.filter(x=>x!==k):[...g.pg.on,k];syncGlitchUI();
+});
+$('tPgStatic').onclick=()=>{const g=GLm();if(!g)return;g.pg.st=!g.pg.st;syncGlitchUI();};
+$('pgAmt').oninput=()=>{const g=GLm();if(!g)return;g.pg.amt=+$('pgAmt').value;$('pgAmtVal').textContent=g.pg.amt;};
+$('pgSeed').oninput=()=>{const g=GLm();if(!g)return;g.pg.seed=+$('pgSeed').value;$('pgSeedVal').textContent=g.pg.seed;};
+$('gStreakCol').onchange=()=>{const g=GLm();if(g)g.streakCol=$('gStreakCol').value;};
+$('btnBreakup').onclick=()=>{
+  const g=GLm();if(!g)return;
+  ['rgb','slice','rowshift','block','noise','flick','wobble','hold','streak','bars','smear'].forEach(k=>g.fx[k]=1);
+  g.amt=70;g.spd=65;g.freq=65;g.on=true;syncGlitchUI();setStatus('PRESET: SIGNAL BREAKUP');
+};
+$('btnGlCopyAll').onclick=()=>{
+  const g=GLm();if(!g)return;const c=JSON.stringify(g);
+  state.layers.forEach(L=>{if(L!==selLayer()){L.gl=JSON.parse(c);delete L._gs;}});
+  setStatus('GLITCH SETTINGS COPIED TO ALL LAYERS');
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// ROLL UI
+// ═══════════════════════════════════════════════════════════════════
+$('rollStyle').onchange=()=>{state.roll.style=$('rollStyle').value;resetTimeline(true);setStatus('SWITCH STYLE: '+$('rollStyle').selectedOptions[0].textContent);};
+const syncRollOn=()=>{const on=state.roll.on!==false;$('tRollOn').dataset.on=on?'1':'0';$('tRollOn').classList.toggle('on',on);};
+$('tRollOn').onclick=()=>{state.roll.on=state.roll.on===false;syncRollOn();setStatus(state.roll.on?'ROLL SWAP: ON':'ROLL SWAP: OFF (use SWITCH NOW)');};
+syncRollOn();
+$('rollEvery').oninput=()=>{state.roll.every=+$('rollEvery').value;$('rollEveryVal').textContent=state.roll.every;};
+$('rollDur').oninput=()=>{state.roll.dur=+$('rollDur').value;$('rollDurVal').textContent=state.roll.dur?state.roll.dur+'ms':'AUTO';};
+$('btnRollNow').onclick=()=>{startRollTransition(performance.now());setStatus('SWITCH: '+$('rollStyle').selectedOptions[0].textContent);};
+$('btnRollReset').onclick=()=>{state.roll.cur=0;resetTimeline(true);setStatus('ROLL RESET');};
+
+// ═══════════════════════════════════════════════════════════════════
+// UI COLOR
+// ═══════════════════════════════════════════════════════════════════
+function setUiColor(c){
+  document.documentElement.style.setProperty('--c',c);
+  state.ui.color=c;
+  document.querySelectorAll('.cbtn[data-ui]').forEach(b=>b.classList.toggle('active',b.dataset.color===c));
+}
+(function(){
+  const wrap=document.createElement('div');
+  wrap.className='cbtn-grid';wrap.style.marginTop='8px';
+  wrap.innerHTML=colorBtns('', 'data-ui="1"');
+  wrap.querySelectorAll('.cbtn').forEach(b=>b.onclick=()=>setUiColor(b.dataset.color));
+  $('uiColorPanel').appendChild(wrap);
+  setUiColor('#39ff14');
+})();
+let _uiZoom=100;
+function setUiZoom(z){
+  _uiZoom=Math.max(80,Math.min(170,z));
+  document.querySelectorAll('.left,.topbar,.right-bar,#thumbStrip,#viewSel').forEach(e=>e.style.zoom=_uiZoom/100);
+  try{localStorage.setItem('glyphconv-uizoom',_uiZoom);}catch(e){}
+  setStatus('UI SIZE '+_uiZoom+'%');
+}
+$('btnZoomDn').onclick=()=>setUiZoom(_uiZoom-10);
+$('btnZoomUp').onclick=()=>setUiZoom(_uiZoom+10);
+try{const z=+localStorage.getItem('glyphconv-uizoom');if(z)setUiZoom(z);}catch(e){}
+$('uiGlow').oninput=()=>{
+  const v=+$('uiGlow').value/100;
+  document.documentElement.style.setProperty('--ug',v);
+  $('uiGlowVal').textContent=Math.round(v*100)+'%';
+};
+$('btnSettings').onclick=e=>{e.stopPropagation();$('settingsPop').classList.toggle('open');};
+document.addEventListener('click',e=>{if(!e.target.closest('#settingsPop'))$('settingsPop').classList.remove('open');});
+$('btnSide').onclick=()=>{
+  const l=$('leftPanel');
+  l.style.display=l.style.display==='none'?'':'none';
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════════════
+function updAnimUi(){
+  const f=$('animFmt').value,vid=f==='webm';
+  $('rowFrames').style.display=vid?'none':'';
+  $('rowSecs').style.display=vid?'':'none';
+  $('rowBps').style.display=vid?'':'none';
+  $('rowGifOpts').style.display=f==='gif'?'':'none';
+}
+$('animFmt').onchange=updAnimUi;updAnimUi();
+$('vidSecs').oninput=()=>$('vidSecsVal').textContent=$('vidSecs').value;
+$('vidBps').oninput=()=>$('vidBpsVal').textContent=(+$('vidBps').value).toFixed(1);
+$('gifW').oninput=()=>$('gifWVal').textContent=$('gifW').value;
+$('gifFrames').oninput=()=>$('gifFramesVal').textContent=$('gifFrames').value;
+$('gifLossy').oninput=()=>$('gifLossyVal').textContent=+$('gifLossy').value||'OFF';
+$('exSwapAt').oninput=()=>$('exSwapAtVal').textContent=$('exSwapAt').value;
+
+function exportFps(){let m=0;state.layers.forEach(L=>{if(L.gl&&L.gl.on)m=Math.max(m,4+L.gl.spd*.26);});return Math.max(MIN_EXPORT_FPS,Math.min(MAX_EXPORT_FPS,Math.round(m||15)));}
+async function webmSession(W,H,fps,bps){
+  if(!window.VideoEncoder||!window.VideoFrame)return null;
+  const config={codec:'vp09.00.10.08',width:W,height:H,bitrate:bps,framerate:fps};
+  try{const sup=await VideoEncoder.isConfigSupported(config);if(!sup.supported)return null;}catch(e){return null;}
+  const muxer=new WebMMuxer({width:W,height:H,fps,codec:'V_VP9'});
+  let err=null,closed=false;
+  const enc=new VideoEncoder({output:chunk=>muxer.addVideoChunk(chunk),error:e=>{err=e;}});
+  try{enc.configure(config);}catch(e){return null;}
+  const perFrame=1e6/fps;
+  return {
+    // frames are encoded as they are rendered, so nothing piles up in memory
+    async add(canvas,i){
+      if(err)throw err;
+      const vf=new VideoFrame(canvas,{timestamp:Math.round(i*perFrame)});
+      enc.encode(vf,{keyFrame:i%(fps*2)===0});
+      vf.close();
+      while(enc.encodeQueueSize>WEBM_QUEUE_MAX){
+        await new Promise(r=>setTimeout(r,5));
+        if(err)throw err;
+      }
+    },
+    async finish(){await enc.flush();if(err)throw err;closed=true;try{enc.close();}catch(e){}return muxer.finalize();},
+    abort(){if(closed)return;closed=true;try{enc.close();}catch(e){}}
+  };
+}
+
+async function exportAnim(){
+  if(state._exporting){setStatus('EXPORT ALREADY RUNNING');return;}        // re-entry guard
+  if(!state.layers.length){setStatus('NOTHING TO EXPORT');return;}
+  const {fmt,fps,dt,N}=exportTiming();
+  setStatus('EXPORT: PREPARING...');
+  const W=+$('gifW').value;
+  const H=Math.round(W/canvasAspect());          // deterministic: project config, not live preview dimensions
+  if(fmt!=='webm'){
+    const need=W*H*4*N;
+    if(need>EXPORT_MEM_BUDGET){
+      setStatus(`EXPORT TOO LARGE (${(need/1048576).toFixed(0)} MB RAW) — LOWER WIDTH OR FRAMES`);
+      return;
+    }
+  }
+  state._exporting=true;                          // preview loop pauses
+  // park the live preview (clock, glitch state, roll state) and run the export on a fresh copy of the same timeline
+  const saved={TL,gs:new Map(state.layers.map(L=>[L,L._gs])),
+    roll:{cur:state.roll.cur,intr:state.roll.intr,nextSwap:state.roll.nextSwap,transition:state.roll.transition,rng:state.roll.rng,startCur:state.roll.startCur}};
+  resetTimeline(false,true);
+  const frames=[];
+  const exportCv=mkCv(W,H);
+  let session=null,finished=false;
+  try{
+    if(fmt==='webm'){
+      session=await webmSession(W,H,Math.round(fps),+$('vidBps').value*1e6);
+      if(!session){setStatus('WEBCODECS NOT AVAILABLE — TRY CHROME/EDGE');return;}
+    }
+    for(let i=0;i<N;i++){
+      const t=i*dt;
+      rollStep(t);                                 // the very same roll logic the live preview runs
+      composeFrame(t,W,H,exportCv);
+      if(session)await session.add(exportCv,i);
+      else frames.push(exportCv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data);
+      setStatus(`CAPTURING ${i+1}/${N} (${fmt.toUpperCase()})`);
+      await new Promise(r=>setTimeout(r));
+    }
+    setStatus(`${fmt.toUpperCase()}: ENCODING...`);
+    await new Promise(r=>setTimeout(r,EXPORT_FRAME_PADDING_MS));
+
+    let blob, ext=fmt;
+    if(fmt==='webm'){
+      blob=await session.finish();finished=true;
+    } else if(fmt==='gif'){
+      const samp=[],step=Math.max(1,Math.floor(W*H*N/15000));
+      frames.forEach(f=>{for(let p=0;p<W*H;p+=step)samp.push(f[p*4],f[p*4+1],f[p*4+2]);});
+      const bits=Math.round(Math.log2(+$('gifColors').value||256)),CL=1<<bits;
+      const real=medianCut(samp,CL-1),pal=real.slice();
+      while(pal.length<CL)pal.push([0,0,0]);
+      const pb=new Uint8Array(3*CL);pal.forEach((cc,i)=>pb.set(cc,i*3));
+      const cache=new Int16Array(32768).fill(-1);
+      const idx=frames.map(f=>{
+        const o=new Uint8Array(W*H);
+        for(let p=0;p<W*H;p++){
+          const r=f[p*4],g=f[p*4+1],b=f[p*4+2],k=(r>>3)<<10|(g>>3)<<5|(b>>3);
+          let v=cache[k];if(v<0){v=cache[k]=nearestColorIdx(r,g,b,real);}
+          o[p]=v;
+        }
+        return o;
+      });
+      blob=new Blob([gifEncode(idx,W,H,Math.max(2,Math.round(dt/10)),pb,bits,+$('gifLossy').value)],{type:'image/gif'});
+    } else if(fmt==='apng'){
+      blob=await apngEncode(frames,W,H,dt);ext='png';
+    } else {
+      const files=[],pre=state.ui.outName||'glitch-art';
+      for(let k=0;k<frames.length;k++){
+        const c2=mkCv(W,H);
+        c2.getContext('2d').putImageData(new ImageData(frames[k],W,H),0,0);
+        const pb=await new Promise(r=>c2.toBlob(r,'image/png'));
+        files.push({name:pre+'_f'+String(k+1).padStart(3,'0')+'.png',data:new Uint8Array(await pb.arrayBuffer())});
+      }
+      blob=zipStore(files);
+    }
+    const size=blob.size/1048576;
+    await saveBlob(blob,ext);
+    setStatus(`SAVED (${W}x${H}, ${size.toFixed(1)} MB, ${N} frames)`);
+  }catch(err){
+    setStatus('EXPORT ERROR: '+err.message);
+    console.error(err);
+  } finally {
+    if(session&&!finished)session.abort();
+    TL=saved.TL;                                  // preview resumes exactly where it was
+    Object.assign(state.roll,saved.roll);
+    state.layers.forEach(L=>{L._gs=saved.gs.has(L)?saved.gs.get(L):null;});
+    _lastNow=performance.now();
+    state._exporting=false;
+  }
+}
+
+$('btnExport').onclick=exportAnim;
+$('btnAnim').onclick=()=>exportAnim();
+function savePng(){
+  if(state._exporting){setStatus('EXPORT RUNNING — TRY AGAIN WHEN DONE');return;}
+  if(!state.layers.length){setStatus('NOTHING TO EXPORT');return;}
+  // the frame on screen right now, as the combined view. Same timeline position => same cached glitch step, so it is
+  // pixel-identical to what is displayed; toBlob snapshots the bitmap at call time, so nothing can change it afterwards.
+  const mode=VIEW_MODE;VIEW_MODE='combined';
+  composeFrame(TL);
+  cv.toBlob(b=>{if(b){saveBlob(b,'png');setStatus(`PNG ${cv.width}x${cv.height}`);}});
+  VIEW_MODE=mode;composeFrame(TL);
+}
+$('btnPng').onclick=savePng;
+$('btnPng2').onclick=savePng;
+$('btnTxt').onclick=()=>{
+  const L=state.layers.find(l=>l.type==='image'&&l.mode==='glyph');
+  if(!L||!L._img){setStatus('NO GLYPH LAYER');return;}
+  const s=buildAsciiString(L._img,L.glyphCfg);
+  saveBlob(new Blob([s],{type:'text/plain'}),'txt');
+};
+$('btnCopy').onclick=()=>{
+  const L=state.layers.find(l=>l.type==='image'&&l.mode==='glyph');
+  if(!L||!L._img){setStatus('NO GLYPH LAYER');return;}
+  const s=buildAsciiString(L._img,L.glyphCfg);
+  navigator.clipboard.writeText(s).then(()=>setStatus('COPIED')).catch(()=>setStatus('COPY FAILED'));
+};
+$('outName').oninput=()=>state.ui.outName=$('outName').value;
+
+// ── OUTPUT FOLDER / NAMING ──
+const OUT={dir:null,live:false};
+async function ensureDir(){
+  if(!OUT.dir)return;
+  try{
+    const o={mode:'readwrite'};
+    let p=await OUT.dir.queryPermission(o);
+    if(p!=='granted')p=await OUT.dir.requestPermission(o);
+    OUT.live=p==='granted';
+  }catch(e){OUT.live=false;}
+}
+function updDirInfo(){
+  $('outDirInfo').textContent=OUT.dir?('FOLDER: '+OUT.dir.name+(OUT.live?'':' (permission needed)')):
+    'SAVES TO BROWSER DOWNLOADS';
+}
+async function saveBlob(blob,ext){
+  await ensureDir();
+  const prefix=state.ui.outName||'glitch-art';
+  const name=prefix+'_'+Date.now()+'.'+ext;
+  if(OUT.dir&&OUT.live){
+    try{
+      const fh=await OUT.dir.getFileHandle(name,{create:true});
+      const wr=await fh.createWritable();
+      await wr.write(blob);await wr.close();
+      return;
+    }catch(e){}
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+updDirInfo();
+
+// ═══════════════════════════════════════════════════════════════════
+// PROJECT SAVE/LOAD
+// ═══════════════════════════════════════════════════════════════════
+function serializeProject(){
+  return {
+    app:'glyph-conv-v11', v:1,
+    ui:state.ui,
+    canvas:state.canvas,
+    glitch:{...state.glitch},
+    roll:{ on:state.roll.on!==false, style:state.roll.style, every:state.roll.every, dur:state.roll.dur },
+    layers:state.layers.map(L=>{
+      const o={...L};
+      delete o._img;delete o._gs;delete o._lightCv;delete o._lightKey;
+      return o;
+    }),
+    selected:state.selected,
+  };
+}
+async function loadProject(d){
+  state.layers=[];state.selected=0;
+  for(const o of d.layers){
+    const L={...o};
+    if(L.type==='image'&&L.src){
+      try{
+        L._img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error(L.name||'image'));i.src=L.src;});
+      }catch(err){
+        setStatus('MISSING IMAGE: '+err.message);
+        L._img=null;L._broken=true;
+      }
+    }
+    state.layers.push(L);
+  }
+  state.selected=d.selected||0;
+  if(d.ui){state.ui=d.ui;$('outName').value=d.ui.outName||'glitch-art';}
+  if(d.canvas){state.canvas={...state.canvas,...d.canvas};$('canvasAspect').value=state.canvas.aspect;}
+  if(d.glitch){
+    state.glitch={...state.glitch,...d.glitch};
+    $('tGlitch').dataset.on=state.glitch.on?'1':'0';
+    $('tGlitch').classList.toggle('on',state.glitch.on);
+  }
+  if(d.roll){
+    state.roll.style=d.roll.style;$('rollStyle').value=d.roll.style;
+    state.roll.every=d.roll.every;$('rollEvery').value=d.roll.every;$('rollEveryVal').textContent=d.roll.every;
+    state.roll.dur=d.roll.dur;$('rollDur').value=d.roll.dur;$('rollDurVal').textContent=d.roll.dur?d.roll.dur+'ms':'AUTO';
+    state.roll.on=d.roll.on!==false;syncRollOn();
+  }
+  state.layers.forEach(fixLayer);                       // legacy projects: copy the old global glitch onto each layer
+  state.roll.cur=0;resetTimeline(true);
+  renderLayerList();renderLayerProps();
+}
+$('btnSaveProj').onclick=async()=>{
+  const blob=new Blob([JSON.stringify(serializeProject())],{type:'application/json'});
+  await saveBlob(blob,'json');
+  setStatus('PROJECT SAVED');
+};
+$('btnOpenProj').onclick=()=>$('projIn').click();
+$('projIn').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const text=await f.text();
+    const d=JSON.parse(text);
+    await loadProject(d);
+    setStatus('PROJECT LOADED');
+  }catch(err){setStatus('LOAD ERROR: '+err.message);}
+  e.target.value='';
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// UI GLOW / INIT
+// ═══════════════════════════════════════════════════════════════════
+document.querySelectorAll('details.sec').forEach(d=>{
+  d.addEventListener('toggle',()=>{
+    if(d.open)document.querySelectorAll('details.sec').forEach(o=>{if(o!==d)o.open=false;});
+  });
+});
+$('canvasAspect').onchange=()=>{state.canvas.aspect=$('canvasAspect').value;setStatus('CANVAS: '+$('canvasAspect').selectedOptions[0].textContent);};
+G.interval=1000/(4+state.glitch.spd*0.26);
+glitchNoise();
+renderLayerList();
+renderLayerProps();
+['gifW','gifFrames','vidSecs','animFmt','exSwapAt','syncPrev'].forEach(id=>{const e=$(id);e.addEventListener('input',()=>resetTimeline(true));e.addEventListener('change',()=>resetTimeline(true));});
+resetTimeline(true);
+tick();
+setStatus('READY — ADD AN IMAGE TO BEGIN');
+</script>
+</body>
+</html>
