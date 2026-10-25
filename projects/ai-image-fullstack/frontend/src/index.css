@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-surface-0 text-white; }
+  ::-webkit-scrollbar { @apply w-2; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-3 rounded; }
+}

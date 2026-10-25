@@ -1,0 +1,11 @@
+import puppeteer from 'puppeteer-core';
+const CHROME = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+const URL = 'http://localhost:5181/';
+const b = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--disable-extensions'] });
+const p = await b.newPage();
+await p.setViewport({ width: 1280, height: 800 });
+await p.goto(URL, { waitUntil: 'networkidle0' });
+console.log('loaded');
+await p.click('#btnSide');
+console.log('clicked side');
+await b.close();

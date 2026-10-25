@@ -115,7 +115,11 @@ export function tick(): void {
   if (!state.layers.length) {
     const cv = $('outCv') as HTMLCanvasElement;
     const ctx = cv.getContext('2d')!;
-    ctx.clearRect(0, 0, cv.width, cv.height);
+    const wrap = document.getElementById('outputWrap')!.getBoundingClientRect();
+    const w = Math.max(64, Math.floor(wrap.width)), h = Math.max(64, Math.floor(wrap.height));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    ctx.fillStyle = '#040400';
+    ctx.fillRect(0, 0, cv.width, cv.height);
     return;
   }
 

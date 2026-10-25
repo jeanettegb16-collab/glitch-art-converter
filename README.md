@@ -7,7 +7,7 @@ Built with TypeScript + Vite. No frameworks, no server, no API keys — everythi
 ## Features
 
 - **ASCII / Glyph mode** — 19 character sets (blocks, fine detail, katakana, braille, runes, math, etc.), adjustable columns, gamma, contrast, edge detection, Floyd-Steinberg dithering, glow halo, invert, mirror, color-from-image
-- **Pixel art mode** — blocky downscale with 18 palettes (PICO-8, NES, C64, CGA, Game Boy, CRT, etc.), auto-palette via median-cut quantisation, dithering, outline, grid, scanlines, noise
+- **Pixel art mode** — blocky downscale with 13 preset palettes (PICO-8, NES, C64, CGA, Game Boy, CRT, etc.), auto-palette via median-cut quantisation, dithering, outline, grid, scanlines, noise
 - **Text layers** — 11 animation styles (fade, typewriter, decode, scan reveal, wipe, glitch-in, scatter, slide, zoom, flicker), per-char/word/line reveal, random order, cursor, glow
 - **Hard light** — crush shadows to black, flatten lit planes to capped grey tones, keep surface detail as crisp texture (3 presets: stencil, textured, deep)
 - **Glitch engine** — RGB split, slice tear, row shift, block corrupt, V-hold roll, static noise, flicker, wobble, matrix rain, streak noise, scan bars, row smear. Advanced pixel stack: CRT warp, chroma split, pixel sort, row jitter, datamosh, pixel stretch, ghost echo, VHS tracking, tape dropout, contrast crush. Per-layer glitch with freeze mode.
@@ -64,10 +64,13 @@ npm run test:watch # vitest in watch mode
 
 ## Tests
 
-51 tests covering:
+84 tests covering:
 - **Encoders**: EBML Vint/uint/float encoding, WebM muxer blob output, GIF header validity, PNG CRC32 correctness, ZIP structure (local header + EOCD + file count)
 - **RNG**: Mulberry32 determinism, h01 hash, clamp01, seedFor, easing functions
 - **Color**: hexToRgb, nearestColorIdx, medianCut quantisation, mixWhite
+- **State**: Serialization round-trip (all config values preserved, canvas-only props stripped), legacy v10 project migration via fixLayer, layer reorder/delete at boundaries, rollLayers filtering
+- **Render helpers**: autoDur transition duration calculation, exportFps clamping to valid range
+- **Constants**: Palette count and structure validation, charset/name pairing, color button HTML generation
 
 ```bash
 npm test

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Image Converter API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --c:#39ff14;--bg:#070700;--bg2:#040400;
+    --panel-w:clamp(300px,26vw,420px);
+    --mono:'VT323','Courier New',monospace;
+    --ui:'Courier New',Courier,monospace;
+  }
+  body{background:var(--bg);color:var(--c);font-family:var(--ui);font-size:15px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+  body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:9999}
+  .topbar{flex-shrink:0;display:flex;align-items:center;border-bottom:1px solid color-mix(in srgb,var(--c) 25%,transparent);height:34px;padding:0 10px}
+  .topbar-title{opacity:.5;margin-right:auto;font-size:13px;letter-spacing:1.5px}
+  .main{flex:1;display:flex;min-height:0}
+  .left{width:var(--panel-w);flex-shrink:0;border-right:1px solid color-mix(in srgb,var(--c) 15%,transparent);display:flex;flex-direction:column;overflow-y:auto}
+  .left::-webkit-scrollbar{width:3px}.left::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--c) 28%,transparent)}
+  .right{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  .right-bar{flex-shrink:0;display:flex;justify-content:space-between;padding:3px 10px;font-size:12px;letter-spacing:2px;opacity:.3;border-bottom:1px solid color-mix(in srgb,var(--c) 8%,transparent)}
+  .output-wrap{flex:1;min-height:0;overflow:hidden;background:var(--bg2);position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+  .output-wrap img,.output-wrap pre{max-width:90%;max-height:70%;border:1px solid color-mix(in srgb,var(--c) 30%,transparent);background:#000c;padding:8px;overflow:auto}
+  .output-wrap pre{font-family:var(--mono);font-size:10px;line-height:1;white-space:pre;max-width:90%;max-height:70%;overflow:auto;color:var(--c)}
+  .output-wrap .placeholder{opacity:.3;font-size:13px;letter-spacing:2px;text-align:center;padding:20px}
+  .output-wrap::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 70px color-mix(in srgb,var(--c) 18%,transparent)}
+  .ps{padding:9px 11px;border-bottom:1px solid color-mix(in srgb,var(--c) 8%,transparent)}
+  .slabel{font-size:12px;letter-spacing:2.5px;opacity:.35;margin-bottom:5px;display:block;text-transform:uppercase}
+  details.sec>summary{list-style:none;cursor:pointer;padding:8px 11px;font-size:13px;letter-spacing:3px;background:var(--bg);border-bottom:1px solid color-mix(in srgb,var(--c) 22%,transparent);position:sticky;top:0;z-index:5;user-select:none}
+  details.sec>summary::-webkit-details-marker{display:none}
+  details.sec[open]>summary::before{content:'▾  '}
+  details.sec:not([open])>summary::before{content:'▸  '}
+  .ctrl{display:flex;flex-direction:column;gap:3px;margin-bottom:7px}
+  .ch{font-size:12px;letter-spacing:.5px;display:flex;justify-content:space-between;opacity:.5}
+  .ch span{opacity:1;color:var(--c)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:color-mix(in srgb,var(--c) 22%,transparent);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:var(--c);cursor:pointer;box-shadow:0 0 5px var(--c)}
+  select,input[type=text],input[type=color],textarea{background:var(--bg);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 25%,transparent);padding:4px 6px;font-family:inherit;font-size:13px;width:100%;outline:none}
+  .tog{width:26px;height:13px;background:color-mix(in srgb,var(--c) 15%,transparent);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);cursor:pointer;position:relative;flex-shrink:0;transition:background .15s}
+  .tog.on{background:color-mix(in srgb,var(--c) 35%,transparent);border-color:var(--c)}
+  .tog::after{content:'';position:absolute;top:1px;left:1px;width:9px;height:9px;background:var(--c);opacity:.35;transition:left .15s,opacity .15s}
+  .tog.on::after{left:14px;opacity:1}
+  .tr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .tl{font-size:12px;letter-spacing:.5px;opacity:.5}
+  .abtn{background:transparent;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);padding:5px 8px;font-family:inherit;font-size:12px;letter-spacing:.5px;cursor:pointer;text-align:center;transition:all .12s}
+  .abtn:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,transparent)}
+  .abtn.pri{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+  .abtn.big{width:100%;padding:9px;font-size:14px;letter-spacing:2px;margin-top:6px}
+  .abtn:disabled{opacity:.3;cursor:not-allowed}
+  .hint{font-size:12px;opacity:.5;margin:2px 0 8px;line-height:1.4}
+  .status{font-size:12px;opacity:.6;padding:6px 11px;border-top:1px solid color-mix(in srgb,var(--c) 7%,transparent);flex-shrink:0;min-height:24px;position:sticky;bottom:0;background:var(--bg)}
+  .dropzone{border:2px dashed color-mix(in srgb,var(--c) 30%,transparent);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:8px}
+  .dropzone:hover,.dropzone.dragover{border-color:var(--c);background:color-mix(in srgb,var(--c) 5%,transparent)}
+  .thumb-preview{max-width:100%;max-height:120px;display:block;margin:6px auto;border:1px solid color-mix(in srgb,var(--c) 20%,transparent)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="topbar-title">IMAGE CONVERTER API</span>
+</div>
+
+<div class="main">
+  <div class="left" id="leftPanel">
+
+    <details class="sec" open><summary>UPLOAD</summary>
+      <div class="ps">
+        <div class="dropzone" id="dropzone">
+          <div style="opacity:.6;font-size:13px;letter-spacing:1px">DRAG IMAGE HERE<br>OR CLICK TO BROWSE</div>
+          <input type="file" id="fileIn" accept="image/*" style="display:none">
+        </div>
+        <img id="thumb" class="thumb-preview" style="display:none" alt="preview">
+      </div>
+    </details>
+
+    <details class="sec" open><summary>PROCESS MODE</summary>
+      <div class="ps">
+        <div class="ctrl"><div class="ch">MODE</div>
+          <select id="mode">
+            <option value="glyph">ASCII / GLYPH</option>
+            <option value="pixel">PIXEL ART</option>
+            <option value="glitch">GLITCH</option>
+            <option value="palette">PALETTE</option>
+            <option value="histogram">HISTOGRAM</option>
+            <option value="ascii">ASCII TEXT</option>
+          </select>
+        </div>
+      </div>
+    </details>
+
+    <!-- GLYPH CONTROLS -->
+    <div id="glyphControls" class="ps" style="display:none">
+      <span class="slabel">:: Glyph settings</span>
+      <div class="ctrl"><div class="ch">CHARSET</div>
+        <select id="gCharset">
+          <option value="0">DENSE BLOCKS ░▒▓█</option>
+          <option value="1" selected>FINE DETAIL 16-level</option>
+          <option value="2">ULTRA FINE 22-level</option>
+          <option value="3">MINIMAL .:|#@</option>
+          <option value="4">NUMBERS</option>
+          <option value="5">HEX 0-F</option>
+          <option value="6">SYMBOLS</option>
+          <option value="7">KATAKANA</option>
+          <option value="8">MATRIX</option>
+          <option value="9">BOX DRAWING</option>
+          <option value="10">HATCHING</option>
+          <option value="11">BRAILLE</option>
+          <option value="12">UNICODE BLOCKS</option>
+          <option value="13">DOTS</option>
+          <option value="14">MIXED DENSE</option>
+          <option value="15">BINARY</option>
+          <option value="16">RUNES</option>
+          <option value="17">MATH</option>
+          <option value="18">CIRCUIT</option>
+        </select>
+      </div>
+      <div class="ctrl"><div class="ch">COLUMNS <span id="vCols">160</span></div>
+        <input type="range" id="cols" min="20" max="400" step="10" value="160">
+      </div>
+      <div class="ctrl"><div class="ch">CONTRAST <span id="vContrast">18</span></div>
+        <input type="range" id="contrast" min="0" max="100" value="18">
+      </div>
+      <div class="ctrl"><div class="ch">GAMMA <span id="vGamma">10</span></div>
+        <input type="range" id="gamma" min="1" max="50" value="10">
+      </div>
+      <div class="ctrl"><div class="ch">GLOW <span id="vGlow">10</span></div>
+        <input type="range" id="glow" min="0" max="40" value="10">
+      </div>
+      <div class="ctrl"><div class="ch">GLOW SPREAD <span id="vSpread">1.5</span></div>
+        <input type="range" id="spread" min="0.1" max="4" step="0.1" value="1.5">
+      </div>
+      <div class="ctrl"><div class="ch">COLOR</div><input type="color" id="gColor" value="#39ff14"></div>
+      <div class="tr"><span class="tl">DITHER</span><div class="tog" id="tDither" data-on="0"></div></div>
+      <div class="tr"><span class="tl">EDGE DETECT</span><div class="tog" id="tEdge" data-on="0"></div></div>
+      <div class="tr"><span class="tl">VIGNETTE</span><div class="tog" id="tVig" data-on="0"></div></div>
+      <div class="tr"><span class="tl">GRAIN</span><div class="tog" id="tGrain" data-on="0"></div></div>
+      <div class="tr"><span class="tl">SCANLINES</span><div class="tog" id="tScanR" data-on="0"></div></div>
+      <div class="tr"><span class="tl">INVERT</span><div class="tog" id="tInvert" data-on="0"></div></div>
+      <div class="tr"><span class="tl">COLOR FROM IMAGE</span><div class="tog" id="tColImg" data-on="0"></div></div>
+    </div>
+
+    <!-- PIXEL CONTROLS -->
+    <div id="pixelControls" class="ps" style="display:none">
+      <span class="slabel">:: Pixel settings</span>
+      <div class="ctrl"><div class="ch">PALETTE</div>
+        <select id="pxPalette">
+          <option value="full" selected>Full color</option>
+          <option value="pico8">PICO-8</option>
+          <option value="cga">CGA</option>
+          <option value="vboy">Virtual Boy</option>
+          <option value="vapor">Vaporwave</option>
+          <option value="cyber">Cyber</option>
+          <option value="sepia">Sepia</option>
+          <option value="ice">Ice</option>
+          <option value="gameboy">Game Boy</option>
+          <option value="mono">Mono</option>
+          <option value="crt">CRT Green</option>
+          <option value="amber">Amber</option>
+          <option value="nes">NES</option>
+          <option value="c64">C64</option>
+        </select>
+      </div>
+      <div class="ctrl"><div class="ch">BLOCK SIZE <span id="vBlock">8</span>px</div>
+        <input type="range" id="block" min="2" max="64" step="2" value="8">
+      </div>
+      <div class="ctrl"><div class="ch">CONTRAST <span id="vPxContrast">10</span></div>
+        <input type="range" id="pxContrast" min="0" max="100" value="10">
+      </div>
+      <div class="ctrl"><div class="ch">SATURATION <span id="vPxSat">10</span></div>
+        <input type="range" id="pxSat" min="0" max="100" value="10">
+      </div>
+      <div class="tr"><span class="tl">DITHER</span><div class="tog" id="tPxDither" data-on="0"></div></div>
+      <div class="tr"><span class="tl">EDGE DETECT</span><div class="tog" id="tPxEdge" data-on="0"></div></div>
+      <div class="tr"><span class="tl">GRID</span><div class="tog" id="tGrid" data-on="0"></div></div>
+      <div class="tr"><span class="tl">SCANLINES</span><div class="tog" id="tPxScan" data-on="0"></div></div>
+      <div class="tr"><span class="tl">NOISE</span><div class="tog" id="tPxNoise" data-on="0"></div></div>
+    </div>
+
+    <!-- GLITCH CONTROLS -->
+    <div id="glitchControls" class="ps" style="display:none">
+      <span class="slabel">:: Glitch effects</span>
+      <div class="ctrl"><div class="ch">INTENSITY <span id="vGlAmt">50</span></div>
+        <input type="range" id="glAmt" min="0" max="100" value="50">
+      </div>
+      <div class="tr"><span class="tl">RGB SPLIT</span><div class="tog on" id="fxRgb" data-on="1"></div></div>
+      <div class="tr"><span class="tl">SLICE TEAR</span><div class="tog on" id="fxSlice" data-on="1"></div></div>
+      <div class="tr"><span class="tl">ROW SHIFT</span><div class="tog on" id="fxRowshift" data-on="1"></div></div>
+      <div class="tr"><span class="tl">BLOCK CORRUPT</span><div class="tog on" id="fxBlock" data-on="1"></div></div>
+      <div class="tr"><span class="tl">STATIC NOISE</span><div class="tog on" id="fxNoise" data-on="1"></div></div>
+      <div class="tr"><span class="tl">FLICKER</span><div class="tog on" id="fxFlick" data-on="1"></div></div>
+      <div class="tr"><span class="tl">WOBBLE</span><div class="tog on" id="fxWobble" data-on="1"></div></div>
+      <div class="tr"><span class="tl">SCAN BARS</span><div class="tog" id="fxBars" data-on="0"></div></div>
+    </div>
+
+    <!-- PALETTE CONTROLS -->
+    <div id="paletteControls" class="ps" style="display:none">
+      <span class="slabel">:: Palette settings</span>
+      <div class="ctrl"><div class="ch">COLORS <span id="vColors">16</span></div>
+        <input type="range" id="colors" min="2" max="256" step="1" value="16">
+      </div>
+    </div>
+
+    <!-- ASCII CONTROLS -->
+    <div id="asciiControls" class="ps" style="display:none">
+      <span class="slabel">:: ASCII settings</span>
+      <div class="ctrl"><div class="ch">CHARSET</div>
+        <select id="aCharset">
+          <option value="0">DENSE BLOCKS ░▒▓█</option>
+          <option value="1" selected>FINE DETAIL 16-level</option>
+          <option value="2">ULTRA FINE 22-level</option>
+          <option value="3">MINIMAL .:|#@</option>
+          <option value="4">NUMBERS</option>
+          <option value="5">HEX 0-F</option>
+          <option value="6">SYMBOLS</option>
+          <option value="7">KATAKANA</option>
+          <option value="8">MATRIX</option>
+          <option value="9">BOX DRAWING</option>
+          <option value="10">HATCHING</option>
+          <option value="11">BRAILLE</option>
+          <option value="12">UNICODE BLOCKS</option>
+          <option value="13">DOTS</option>
+          <option value="14">MIXED DENSE</option>
+          <option value="15">BINARY</option>
+          <option value="16">RUNES</option>
+          <option value="17">MATH</option>
+          <option value="18">CIRCUIT</option>
+        </select>
+      </div>
+      <div class="ctrl"><div class="ch">COLUMNS <span id="vACols">80</span></div>
+        <input type="range" id="aCols" min="20" max="400" step="10" value="80">
+      </div>
+    </div>
+
+    <!-- HISTOGRAM: no controls, just processing -->
+
+    <div class="ps">
+      <button class="abtn pri big" id="btnProcess">▶ PROCESS</button>
+      <div class="seg" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px">
+        <button class="abtn" id="btnDownload" disabled>💾 SAVE</button>
+        <button class="abtn" id="btnCopy" disabled>📋 COPY</button>
+      </div>
+    </div>
+
+    <div class="status" id="status">READY. Upload an image to begin.</div>
+  </div>
+
+  <div class="right">
+    <div class="right-bar"><span id="modeLabel">PREVIEW</span><span id="dimInfo">—</span></div>
+    <div class="output-wrap" id="outputWrap">
+      <div class="placeholder" id="placeholder">
+        📎 Upload an image and press PROCESS<br>
+        Result will appear here
+      </div>
+      <img id="resultImg" style="display:none" alt="result">
+      <pre id="resultAscii" style="display:none"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const statusEl=$('status');
+const setStatus=m=>{statusEl.textContent='> '+m};
+
+let currentFile=null;
+let lastResultBlob=null;
+let lastResultText=null;
+
+// Dropzone
+const dz=$('dropzone'), fin=$('fileIn'), thumb=$('thumb');
+dz.addEventListener('click',()=>fin.click());
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('dragover');
+  if(e.dataTransfer.files.length){loadFile(e.dataTransfer.files[0])}
+});
+fin.addEventListener('change',()=>{if(fin.files.length)loadFile(fin.files[0])});
+
+function loadFile(file){
+  currentFile=file;const url=URL.createObjectURL(file);
+  thumb.src=url;thumb.style.display='block';
+  setStatus('Loaded: '+file.name);
+}
+
+// Mode controls swap
+const modeSel=$('mode');
+const controlPanels={
+  glyph:$('glyphControls'), pixel:$('pixelControls'), glitch:$('glitchControls'),
+  palette:$('paletteControls'), histogram:$('paletteControls'), ascii:$('asciiControls')
+};
+
+function showControls(){
+  Object.values(controlPanels).forEach(p=>p.style.display='none');
+  const p=controlPanels[modeSel.value];
+  if(p&&modeSel.value!=='histogram') p.style.display='block';
+}
+modeSel.addEventListener('change',showControls);
+
+// Toggle buttons
+document.querySelectorAll('.tog').forEach(t=>{
+  t.addEventListener('click',()=>{
+    const on=!t.classList.contains('on');
+    t.classList.toggle('on',on);
+    t.dataset.on=on?1:0;
+  });
+});
+
+// Range labels
+document.querySelectorAll('input[type=range]').forEach(el=>{
+  const label=$(el.id.replace(/^[a-z]/,c=>c.toUpperCase())) || $('v'+el.id.replace(/^[a-z]/,c=>c.toUpperCase())) || $('v'+el.id.charAt(0).toUpperCase()+el.id.slice(1));
+  if(!label)return;
+  el.addEventListener('input',()=>label.textContent=el.value);
+});
+
+// Build config for current mode
+function buildConfig(){
+  const m=modeSel.value;
+  if(m==='glyph')return{
+    charset:+($('gCharset').value),cols:+($('cols').value),
+    contrast:+($('contrast').value),gamma:+($('gamma').value),
+    glow:+($('glow').value),spread:+($('spread').value),
+    color:$('gColor').value,dither:+($('tDither').dataset.on),
+    edge:+($('tEdge').dataset.on),vig:+($('tVig').dataset.on),
+    grain:+($('tGrain').dataset.on),scanR:+($('tScanR').dataset.on),
+    invert:+($('tInvert').dataset.on),colorFromImage:+($('tColImg').dataset.on),
+  };
+  if(m==='pixel')return{
+    palette:$('pxPalette').value,block:+($('block').value),
+    contrast:+($('pxContrast').value),sat:+($('pxSat').value),
+    dither:+($('tPxDither').dataset.on),edge:+($('tPxEdge').dataset.on),
+    grid:+($('tGrid').dataset.on),scan:+($('tPxScan').dataset.on),
+    noise:+($('tPxNoise').dataset.on),
+  };
+  if(m==='glitch')return{
+    amt:+($('glAmt').value),
+    fx:{rgb:+($('fxRgb').dataset.on),slice:+($('fxSlice').dataset.on),
+        rowshift:+($('fxRowshift').dataset.on),block:+($('fxBlock').dataset.on),
+        noise:+($('fxNoise').dataset.on),flick:+($('fxFlick').dataset.on),
+        wobble:+($('fxWobble').dataset.on),bars:+($('fxBars').dataset.on)},
+  };
+  if(m==='palette')return{colors:+($('colors').value)};
+  if(m==='ascii')return{charset:+($('aCharset').value),cols:+($('aCols').value)};
+  return{};
+}
+
+// Process
+$('btnProcess').addEventListener('click',async()=>{
+  if(!currentFile){setStatus('ERROR: No image uploaded');return}
+  const mode=modeSel.value;
+  setStatus('Processing '+mode+'…');
+
+  const form=new FormData();
+  form.append('image',currentFile);
+  form.append('config',JSON.stringify(buildConfig()));
+
+  try{
+    const url=(mode==='ascii')?'/ascii':'/process/'+mode;
+    const resp=await fetch(url,{method:'POST',body:form});
+    if(!resp.ok){setStatus('ERROR '+resp.status+': '+await resp.text());return}
+
+    const img=$('resultImg'),ascii=$('resultAscii'),ph=$('placeholder');
+    if(mode==='ascii'){
+      lastResultText=await resp.text();
+      const j=JSON.parse(lastResultText);
+      ascii.textContent=j.text||lastResultText;
+      img.style.display='none';ascii.style.display='block';
+      $('btnCopy').disabled=false;$('btnDownload').disabled=true;
+      setStatus('ASCII generated: '+ascii.textContent.split('\n').length+' lines');
+    }else{
+      const blob=await resp.blob();
+      lastResultBlob=blob;const rurl=URL.createObjectURL(blob);
+      img.src=rurl;img.style.display='block';ascii.style.display='none';
+      $('btnCopy').disabled=true;$('btnDownload').disabled=false;
+      setStatus('Done: '+Math.round(blob.size/1024)+' KB');
+    }
+    ph.style.display='none';
+  }catch(err){setStatus('ERROR: '+err.message)}
+});
+
+// Download
+$('btnDownload').addEventListener('click',()=>{
+  if(!lastResultBlob)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(lastResultBlob);a.download='result.png';a.click();
+});
+
+// Copy
+$('btnCopy').addEventListener('click',()=>{
+  const ascii=$('resultAscii');
+  if(ascii.style.display==='none')return;
+  navigator.clipboard.writeText(ascii.textContent).then(()=>setStatus('Copied to clipboard'));
+});
+
+// Show default controls
+showControls();
+</script>
+</body>
+</html>
