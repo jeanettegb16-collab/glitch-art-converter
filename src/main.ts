@@ -176,7 +176,7 @@ function setLayerMode(m: string, all: boolean): void {
 
 function syncGlitchUI(): void {
   const L = selLayer();
-  if (!L) { fixLayer(L as any, state.glitch as any); }
+  if (L) fixLayer(L);
   const g = L ? L.gl : null;
   ($('glLayerName') as HTMLElement).textContent = L ? L.name : '(no layer selected)';
   if (!g) return;

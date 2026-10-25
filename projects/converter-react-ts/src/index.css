@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-terminal-bg text-terminal-fg font-ui text-[15px] h-screen overflow-hidden; }
+  ::-webkit-scrollbar { @apply w-[3px]; }
+  ::-webkit-scrollbar-thumb { @apply bg-terminal-fg/30 rounded; }
+  input[type=range] { -webkit-appearance: none; @apply w-full h-[2px] bg-terminal-fg/20 outline-none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; @apply w-2.5 h-2.5 bg-terminal-fg cursor-pointer; }
+}
